@@ -1,5 +1,5 @@
 unit Neslib.Clang;
-{< Delphi wrappers for LibClang 14.0.0.
+{< Delphi wrappers for LibClang 21.1.8.
    The main entry point to LibClang is TIndex.Create. }
 
 {$SCOPEDENUMS ON}
@@ -32,6 +32,18 @@ type
 
     { An AST deserialization error has occurred. }
     AstReadError = CXError_ASTReadError);
+
+type
+  TChoice = (
+    { Use the default value of an option that may depend on the process
+    environment. }
+    Default = CXChoice_Default,
+
+    { Enable the option. }
+    Enabled = CXChoice_Enabled,
+
+    { isable the option. }
+    Disabled = CXChoice_Disabled);
 
 type
   TGlobalOption = (
@@ -670,8 +682,9 @@ type
     { Represents the "self" expression in an Objective-C method. }
     ObjCSelfExpr = CXCursor_ObjCSelfExpr,
 
-    { OpenMP 4.0 [2.4, Array Section]. }
-    OMPArraySectionExpr = CXCursor_OMPArraySectionExpr,
+    { OpenMP 4.0 [2.4, Array Section].
+      OpenACC 3.3 [2.7.1, Data Specification for Data Clauses (Sub Arrays)] }
+    ArraySectionExpr = CXCursor_ArraySectionExpr,
 
     { Represents an @@available(...) check. }
     ObjCAvailabilityCheckExpr = CXCursor_ObjCAvailabilityCheckExpr,
@@ -687,6 +700,18 @@ type
 
     { OpenCL's addrspace_cast<> expression. }
     CXXAddrspaceCastExpr = CXCursor_CXXAddrspaceCastExpr,
+
+    { Expression that references a C++20 concept. }
+    ConceptSpecializationExpr = CXCursor_ConceptSpecializationExpr,
+
+    { Expression that references a C++20 requires expression. }
+    RequiresExpr = CXCursor_RequiresExpr,
+
+    { Expression that references a C++20 parenthesized list aggregate initializer }
+    CXXParenListInitExpr = CXCursor_CXXParenListInitExpr,
+
+    { Represents a C++26 pack indexing expression. }
+    PackIndexingExpr = CXCursor_PackIndexingExpr,
 
     LastExpr = CXCursor_LastExpr,
 
@@ -998,6 +1023,93 @@ type
     { OpenMP loop directive. }
     OMPGenericLoopDirective = CXCursor_OMPGenericLoopDirective,
 
+    { OpenMP teams loop directive. }
+    OMPTeamsGenericLoopDirective = CXCursor_OMPTeamsGenericLoopDirective,
+
+    { OpenMP target teams loop directive. }
+    OMPTargetTeamsGenericLoopDirective = CXCursor_OMPTargetTeamsGenericLoopDirective,
+
+    { OpenMP parallel loop directive. }
+    OMPParallelGenericLoopDirective = CXCursor_OMPParallelGenericLoopDirective,
+
+    { OpenMP target parallel loop directive. }
+    OMPTargetParallelGenericLoopDirective = CXCursor_OMPTargetParallelGenericLoopDirective,
+
+    { OpenMP parallel masked directive. }
+    OMPParallelMaskedDirective = CXCursor_OMPParallelMaskedDirective,
+
+    { OpenMP masked taskloop directive. }
+    OMPMaskedTaskLoopDirective = CXCursor_OMPMaskedTaskLoopDirective,
+
+    { OpenMP masked taskloop simd directive. }
+    OMPMaskedTaskLoopSimdDirective = CXCursor_OMPMaskedTaskLoopSimdDirective,
+
+    { OpenMP parallel masked taskloop directive. }
+    OMPParallelMaskedTaskLoopDirective = CXCursor_OMPParallelMaskedTaskLoopDirective,
+
+    { OpenMP parallel masked taskloop simd directive. }
+    OMPParallelMaskedTaskLoopSimdDirective = CXCursor_OMPParallelMaskedTaskLoopSimdDirective,
+
+    { OpenMP error directive. }
+    OMPErrorDirective = CXCursor_OMPErrorDirective,
+
+    { OpenMP scope directive. }
+    OMPScopeDirective = CXCursor_OMPScopeDirective,
+
+    { OpenMP reverse directive. }
+    OMPReverseDirective = CXCursor_OMPReverseDirective,
+
+    { OpenMP interchange directive. }
+    OMPInterchangeDirective = CXCursor_OMPInterchangeDirective,
+
+    { OpenMP assume directive. }
+    OMPAssumeDirective = CXCursor_OMPAssumeDirective,
+
+    { OpenMP assume directive. }
+    OMPStripeDirective = CXCursor_OMPStripeDirective,
+
+    { OpenACC Compute Construct. }
+    OpenACCComputeConstruct = CXCursor_OpenACCComputeConstruct,
+
+    { OpenACC Loop Construct. }
+    OpenACCLoopConstruct = CXCursor_OpenACCLoopConstruct,
+
+    { OpenACC Combined Constructs. }
+    OpenACCCombinedConstruct = CXCursor_OpenACCCombinedConstruct,
+
+    { OpenACC data Construct. }
+    OpenACCDataConstruct = CXCursor_OpenACCDataConstruct,
+
+    { OpenACC enter data Construct. }
+    OpenACCEnterDataConstruct = CXCursor_OpenACCEnterDataConstruct,
+
+    { OpenACC exit data Construct. }
+    OpenACCExitDataConstruct = CXCursor_OpenACCExitDataConstruct,
+
+    { OpenACC host_data Construct. }
+    OpenACCHostDataConstruct = CXCursor_OpenACCHostDataConstruct,
+
+    { OpenACC wait Construct. }
+    OpenACCWaitConstruct = CXCursor_OpenACCWaitConstruct,
+
+    { OpenACC init Construct. }
+    OpenACCInitConstruct = CXCursor_OpenACCInitConstruct,
+
+    { OpenACC shutdown Construct. }
+    OpenACCShutdownConstruct = CXCursor_OpenACCShutdownConstruct,
+
+    { OpenACC set Construct. }
+    OpenACCSetConstruct = CXCursor_OpenACCSetConstruct,
+
+    { OpenACC update Construct. }
+    OpenACCUpdateConstruct = CXCursor_OpenACCUpdateConstruct,
+
+    { OpenACC atomic Construct. }
+    OpenACCAtomicConstruct = CXCursor_OpenACCAtomicConstruct,
+
+    { OpenACC cache Construct. }
+    OpenACCCacheConstruct = CXCursor_OpenACCCacheConstruct,
+
     LastStmt = CXCursor_LastStmt,
 
     { Cursor that represents the translation unit itself.
@@ -1075,6 +1187,10 @@ type
 
     { A friend declaration. }
     FriendDecl = CXCursor_FriendDecl,
+
+    { a concept declaration. }
+    ConceptDecl = CXCursor_ConceptDecl,
+
     FirstExtraDecl = CXCursor_FirstExtraDecl,
     LastExtraDecl = CXCursor_LastExtraDecl,
 
@@ -1084,10 +1200,10 @@ type
 type
   { Extends TCursorKind }
   TCursorKindHelper = record helper for TCursorKind
+  {$REGION 'Internal Declarations'}
   private
-    {$REGION 'Internal Declarations'}
     function GetSpelling: String; inline;
-    {$ENDREGION 'Internal Declarations'}
+  {$ENDREGION 'Internal Declarations'}
   public
 
     { Text version of the cursor kind. }
@@ -1225,12 +1341,25 @@ type
     OCLIntelSubgroupAVCImeResult = CXType_OCLIntelSubgroupAVCImeResult,
     OCLIntelSubgroupAVCRefResult = CXType_OCLIntelSubgroupAVCRefResult,
     OCLIntelSubgroupAVCSicResult = CXType_OCLIntelSubgroupAVCSicResult,
+    OCLIntelSubgroupAVCImeResultSingleReferenceStreamout = CXType_OCLIntelSubgroupAVCImeResultSingleReferenceStreamout,
+    OCLIntelSubgroupAVCImeResultDualReferenceStreamout = CXType_OCLIntelSubgroupAVCImeResultDualReferenceStreamout,
+    OCLIntelSubgroupAVCImeSingleReferenceStreamin = CXType_OCLIntelSubgroupAVCImeSingleReferenceStreamin,
+    OCLIntelSubgroupAVCImeDualReferenceStreamin = CXType_OCLIntelSubgroupAVCImeDualReferenceStreamin,
+
+    { Old aliases for AVC OpenCL extension types. }
     OCLIntelSubgroupAVCImeResultSingleRefStreamout = CXType_OCLIntelSubgroupAVCImeResultSingleRefStreamout,
     OCLIntelSubgroupAVCImeResultDualRefStreamout = CXType_OCLIntelSubgroupAVCImeResultDualRefStreamout,
     OCLIntelSubgroupAVCImeSingleRefStreamin = CXType_OCLIntelSubgroupAVCImeSingleRefStreamin,
     OCLIntelSubgroupAVCImeDualRefStreamin = CXType_OCLIntelSubgroupAVCImeDualRefStreamin,
+
     ExtVector = CXType_ExtVector,
-    Atomic = CXType_Atomic);
+    Atomic = CXType_Atomic,
+    BTFTagAttributed = CXType_BTFTagAttributed,
+
+    { HLSL Types }
+    HLSLResource = CXType_HLSLResource,
+    HLSLAttributedResource = CXType_HLSLAttributedResource,
+    HLSLInlineSpirv = CXType_HLSLInlineSpirv);
 
 type
   { Describes the kind of a template argument. }
@@ -1519,6 +1648,22 @@ type
     PreserveAll = CXCallingConv_PreserveAll,
     AArch64VectorCall = CXCallingConv_AArch64VectorCall,
     SwiftAsync = CXCallingConv_SwiftAsync,
+    AArch64SVEPCS = CXCallingConv_AArch64SVEPCS,
+    M68kRTD = CXCallingConv_M68kRTD,
+    PreserveNone = CXCallingConv_PreserveNone,
+    RISCVVectorCall = CXCallingConv_RISCVVectorCall,
+    RISCVVLSCall_32 = CXCallingConv_RISCVVLSCall_32,
+    RISCVVLSCall_64 = CXCallingConv_RISCVVLSCall_64,
+    RISCVVLSCall_128 = CXCallingConv_RISCVVLSCall_128,
+    RISCVVLSCall_256 = CXCallingConv_RISCVVLSCall_256,
+    RISCVVLSCall_512 = CXCallingConv_RISCVVLSCall_512,
+    RISCVVLSCall_1024 = CXCallingConv_RISCVVLSCall_1024,
+    RISCVVLSCall_2048 = CXCallingConv_RISCVVLSCall_2048,
+    RISCVVLSCall_4096 = CXCallingConv_RISCVVLSCall_4096,
+    RISCVVLSCall_8192 = CXCallingConv_RISCVVLSCall_8192,
+    RISCVVLSCall_16384 = CXCallingConv_RISCVVLSCall_16384,
+    RISCVVLSCall_32768 = CXCallingConv_RISCVVLSCall_32768,
+    RISCVVLSCall_65536 = CXCallingConv_RISCVVLSCall_65536,
     Invalid = CXCallingConv_Invalid,
     Unexposed = CXCallingConv_Unexposed);
 
@@ -1716,7 +1861,7 @@ type
 
 type
   { Indexer options used by IIndexAction }
-  TIndexOption = (
+  TIndexOpt = (
     { Used to indicate that IIndexerListener.IndexEntityReference should be
       invoked for only one reference of an entity per source file that does
       not also include a declaration/definition of the entity. }
@@ -1737,7 +1882,7 @@ type
       session associated with an IIndexAction object. Bodies in system headers
       are always skipped. }
     SkipParsedBodiesInSession);
-  TIndexOptions = set of TIndexOption;
+  TIndexOpts = set of TIndexOpt;
 
 type
   { Describes the type of the comment AST node (TComment). A comment node can be
@@ -2001,6 +2146,118 @@ type
     NullableResult = CXTypeNullability_NullableResult);
 
 type
+  { Index initialization options.
+
+    0 is the default value of each member of this record except for Size. }
+  TIndexOptions = record
+  {$REGION 'Internal Declarations'}
+  private
+    FHandle: TCXIndexOptions;
+    FPreambleStoragePath: AnsiString;
+    FInvocationEmissionPath: AnsiString;
+    function GetThreadBackgroundPriorityForIndexing: TChoice; inline;
+    procedure SetThreadBackgroundPriorityForIndexing(const AValue: TChoice); inline;
+    function GetThreadBackgroundPriorityForEditing: TChoice; inline;
+    procedure SetThreadBackgroundPriorityForEditing(const AValue: TChoice); inline;
+    function GetExcludeDeclarationsFromPCH: Boolean; inline;
+    procedure SetExcludeDeclarationsFromPCH(const AValue: Boolean); inline;
+    function GetDisplayDiagnostics: Boolean; inline;
+    procedure SetDisplayDiagnostics(const AValue: Boolean); inline;
+    function GetStorePreamblesInMemory: Boolean; inline;
+    procedure SetStorePreamblesInMemory(const AValue: Boolean); inline;
+    function GetInvocationEmissionPath: String; inline;
+    function GetPreambleStoragePath: String; inline;
+    procedure SetPreambleStoragePath(const AValue: String);
+    procedure SetInvocationEmissionPath(const AValue: String);
+  {$ENDREGION 'Internal Declarations'}
+  public
+    class operator Initialize(out ADest: TIndexOptions);
+
+    { The indexing priority policy. }
+    property ThreadBackgroundPriorityForIndexing: TChoice read GetThreadBackgroundPriorityForIndexing write SetThreadBackgroundPriorityForIndexing;
+
+    { The editing priority policy. }
+    property ThreadBackgroundPriorityForEditing: TChoice read GetThreadBackgroundPriorityForEditing write SetThreadBackgroundPriorityForEditing;
+
+    { When True, allows enumeration of "local" declarations (when loading any
+      new translation units). A "local" declaration is one that belongs in the
+      translation unit itself and not in a precompiled header that was used by
+      the translation unit. If False, all declarations will be enumerated. }
+    property ExcludeDeclarationsFromPCH: Boolean read GetExcludeDeclarationsFromPCH write SetExcludeDeclarationsFromPCH;
+
+    { Whether to display diagnostics }
+    property DisplayDiagnostics: Boolean read GetDisplayDiagnostics write SetDisplayDiagnostics;
+
+    { Whether to store PCH in memory. If False, PCH are stored in temporary files. }
+    property StorePreamblesInMemory: Boolean read GetStorePreamblesInMemory write SetStorePreamblesInMemory;
+
+    { The path to a directory, in which to store temporary PCH files. If empty,
+      the default system temporary directory is used. These PCH files are
+      deleted on clean exit but stay on disk if the program crashes or is
+      killed.
+
+      This option is ignored if StorePreamblesInMemory is True.
+
+      Libclang does not create the directory at the specified path in the file
+      system. Therefore it must exist, or storing PCH files will fail. }
+    property PreambleStoragePath: String read GetPreambleStoragePath write SetPreambleStoragePath;
+
+    { Specifies a path which will contain log files for certain libclang
+      invocations. An empty value implies that libclang invocations are not
+      logged. }
+    property InvocationEmissionPath: String read GetInvocationEmissionPath write SetInvocationEmissionPath;
+  end;
+
+type
+  { Properties for the printing policy. }
+  TPrintingPolicyProperty = (
+    Indentation = CXPrintingPolicy_Indentation,
+    SuppressSpecifiers = CXPrintingPolicy_SuppressSpecifiers,
+    SuppressTagKeyword = CXPrintingPolicy_SuppressTagKeyword,
+    IncludeTagDefinition = CXPrintingPolicy_IncludeTagDefinition,
+    SuppressScope = CXPrintingPolicy_SuppressScope,
+    SuppressUnwrittenScope = CXPrintingPolicy_SuppressUnwrittenScope,
+    SuppressInitializers = CXPrintingPolicy_SuppressInitializers,
+    ConstantArraySizeAsWritten = CXPrintingPolicy_ConstantArraySizeAsWritten,
+    AnonymousTagLocations = CXPrintingPolicy_AnonymousTagLocations,
+    SuppressStrongLifetime = CXPrintingPolicy_SuppressStrongLifetime,
+    SuppressLifetimeQualifiers = CXPrintingPolicy_SuppressLifetimeQualifiers,
+    SuppressTemplateArgsInCXXConstructors = CXPrintingPolicy_SuppressTemplateArgsInCXXConstructors,
+    Bool = CXPrintingPolicy_Bool,
+    Restrict = CXPrintingPolicy_Restrict,
+    Alignof = CXPrintingPolicy_Alignof,
+    UnderscoreAlignof = CXPrintingPolicy_UnderscoreAlignof,
+    UseVoidForZeroParams = CXPrintingPolicy_UseVoidForZeroParams,
+    TerseOutput = CXPrintingPolicy_TerseOutput,
+    PolishForDeclaration = CXPrintingPolicy_PolishForDeclaration,
+    Half = CXPrintingPolicy_Half,
+    MSWChar = CXPrintingPolicy_MSWChar,
+    IncludeNewlines = CXPrintingPolicy_IncludeNewlines,
+    MSVCFormatting = CXPrintingPolicy_MSVCFormatting,
+    ConstantsAsWritten = CXPrintingPolicy_ConstantsAsWritten,
+    SuppressImplicitBase = CXPrintingPolicy_SuppressImplicitBase,
+    FullyQualifiedName = CXPrintingPolicy_FullyQualifiedName,
+    LastProperty = CXPrintingPolicy_LastProperty);
+
+type
+  { A policy that controls pretty printing for TType.PrettyPrinted,
+    TType.GetFullyQualifiedName and TCursor.PrettyPrinted }
+  IPrintingPolicy = interface
+  ['{AAEE40F0-049F-461A-B817-C9D7CC655A59}']
+    {$REGION 'Internal Declarations'}
+    function GetProperty(const AProp: TPrintingPolicyProperty): Integer;
+    procedure SetProperty(const AProp: TPrintingPolicyProperty; const AValue: Integer);
+    function GetHandle: TCXPrintingPolicy;
+    {$ENDREGION 'Internal Declarations'}
+
+    { Get or set property values }
+    property Properties[const AProp: TPrintingPolicyProperty]: Integer read GetProperty write SetProperty;
+
+    { Internal handle to C API }
+    property Handle: TCXPrintingPolicy read GetHandle;
+  end;
+
+type
   { The type of an element in the abstract syntax tree. }
   TType = record
   {$REGION 'Internal Declarations'}
@@ -2019,6 +2276,8 @@ type
     function GetAddressSpace: Cardinal; inline;
     function GetTypedefName: String; inline;
     function GetPointeeType: TType; inline;
+    function GetUnqualifiedType: TType; inline;
+    function GetNonReferenceType: TType; inline;
     function GetObjCEncoding: String; inline;
     function GetFunctionCallingConv: TCallingConv; inline;
     function GetResultType: TType; inline;
@@ -2063,6 +2322,27 @@ type
       * If the field's name S is not found, TYPE_LAYOUT_ERROR_INVALID_FIELDNAME
         is returned. }
     function GetOffsetOf(const AFieldName: String): Int64; inline;
+
+    { Pretty-print the underlying type using a custom printing policy.
+
+      Parameters:
+        APolicy: (optional) policy to control the entities being printed.
+          If nil, a default policy is used.
+
+      Returns:
+        The pretty printed type or the empty string if the type is invalid. }
+    function PrettyPrinted(const APolicy: IPrintingPolicy = nil): String; inline;
+
+    { Get the fully qualified name for the type.
+
+      This includes full qualification of all template parameters.
+
+      Parameters:
+        APolicy: (optional) Further refine the type formatting.
+        AWithGlobalNsPrefix: (optional) If True, function will prepend a '::' to
+          qualified names }
+    function GetFullyQualifiedName(const APolicy: IPrintingPolicy = nil;
+      const AWithGlobalNsPrefix: Boolean = False): String; inline;
 
     { The kind of the type }
     property Kind: TTypeKind read GetKind;
@@ -2117,6 +2397,46 @@ type
 
     { For pointer types, the type of the pointee. }
     property PointeeType: TType read GetPointeeType;
+
+    { Retrieve the unqualified variant of the given type, removing as little
+      sugar as possible.
+
+      For example, given the following series of typedefs:
+      @preformatted(
+        typedef int Integer;
+        typedef const Integer CInteger;
+        typedef CInteger DifferenceType;
+      )
+
+      Getting UnqualifiedType on a TType that represents DifferenceType, will
+      desugar to a type representing Integer, that has no qualifiers.
+
+      And, getting UnqualifiedType on the type of the first argument of the
+      following function declaration:
+
+      @preformatted(
+        void foo(const int);
+      )
+
+      Will return a type representing 'int', removing the 'const' qualifier.
+
+      Sugar over array types is not desugared.
+
+      A type can be checked for qualifiers with IsConstQualifiedType,
+      IsVolatileQualifiedType and IsRestrictQualifiedType.
+
+      A type that resulted from this property will return False for all of the
+      above calls. }
+    property UnqualifiedType: TType read GetUnqualifiedType;
+
+    { For reference types (e.g., "const int&"), returns the type that the
+      reference refers to (e.g "const int").
+
+      Otherwise, returns the type itself.
+
+      A type that has kind TType.Kind.LValueReference or
+      TTypeKind.RValueReference is a reference type. }
+    property NonReferenceType: TType read GetNonReferenceType;
 
     { The Objective-C type encoding for the type. }
     property ObjCEncoding: String read GetObjCEncoding;
@@ -2421,6 +2741,17 @@ type
           source location points. }
     procedure GetFileLocation(out AFile: TFile; out ALine, AColumn,
       AOffset: Integer); inline;
+
+    { Whether this source location comes strictly before AOther in the source
+      code.
+
+      Parameters:
+        AOther: the source location to compare to.
+
+      Returns:
+        True if this source location comes strictly before AOther,
+        False otherwise. }
+    function IsBeforeInTranslationUnit(const AOther: TSourceLocation): Boolean; inline;
 
     { Whether the source location is in a system header. }
     property IsInSystemHeader: Boolean read GetIsInSystemHeader;
@@ -2900,51 +3231,202 @@ type
   end;
 
 type
-  { Properties for the printing policy. }
-  TPrintingPolicyProperty = (
-    Indentation = CXPrintingPolicy_Indentation,
-    SuppressSpecifiers = CXPrintingPolicy_SuppressSpecifiers,
-    SuppressTagKeyword = CXPrintingPolicy_SuppressTagKeyword,
-    IncludeTagDefinition = CXPrintingPolicy_IncludeTagDefinition,
-    SuppressScope = CXPrintingPolicy_SuppressScope,
-    SuppressUnwrittenScope = CXPrintingPolicy_SuppressUnwrittenScope,
-    SuppressInitializers = CXPrintingPolicy_SuppressInitializers,
-    ConstantArraySizeAsWritten = CXPrintingPolicy_ConstantArraySizeAsWritten,
-    AnonymousTagLocations = CXPrintingPolicy_AnonymousTagLocations,
-    SuppressStrongLifetime = CXPrintingPolicy_SuppressStrongLifetime,
-    SuppressLifetimeQualifiers = CXPrintingPolicy_SuppressLifetimeQualifiers,
-    SuppressTemplateArgsInCXXConstructors = CXPrintingPolicy_SuppressTemplateArgsInCXXConstructors,
-    Bool = CXPrintingPolicy_Bool,
-    Restrict = CXPrintingPolicy_Restrict,
-    Alignof = CXPrintingPolicy_Alignof,
-    UnderscoreAlignof = CXPrintingPolicy_UnderscoreAlignof,
-    UseVoidForZeroParams = CXPrintingPolicy_UseVoidForZeroParams,
-    TerseOutput = CXPrintingPolicy_TerseOutput,
-    PolishForDeclaration = CXPrintingPolicy_PolishForDeclaration,
-    Half = CXPrintingPolicy_Half,
-    MSWChar = CXPrintingPolicy_MSWChar,
-    IncludeNewlines = CXPrintingPolicy_IncludeNewlines,
-    MSVCFormatting = CXPrintingPolicy_MSVCFormatting,
-    ConstantsAsWritten = CXPrintingPolicy_ConstantsAsWritten,
-    SuppressImplicitBase = CXPrintingPolicy_SuppressImplicitBase,
-    FullyQualifiedName = CXPrintingPolicy_FullyQualifiedName,
-    LastProperty = CXPrintingPolicy_LastProperty);
+  { Describes the kind of binary operators. }
+  TBinaryOperatorKind = (
+    { This value describes cursors which are not binary operators. }
+    Invalid = CXBinaryOperator_Invalid,
+
+    { C++ Pointer - to - member operator. }
+    PtrMemD = CXBinaryOperator_PtrMemD,
+
+    { C++ Pointer - to - member operator. }
+    PtrMemI = CXBinaryOperator_PtrMemI,
+
+    { Multiplication operator. }
+    Mul = CXBinaryOperator_Mul,
+
+    { Division operator. }
+    &Div = CXBinaryOperator_Div,
+
+    { Remainder operator. }
+    Rem = CXBinaryOperator_Rem,
+
+    { Addition operator. }
+    Add = CXBinaryOperator_Add,
+
+    { Subtraction operator. }
+    Sub = CXBinaryOperator_Sub,
+
+    { Bitwise shift left operator. }
+    &Shl = CXBinaryOperator_Shl,
+
+    { Bitwise shift right operator. }
+    &Shr = CXBinaryOperator_Shr,
+
+    { C++ three-way comparison (spaceship) operator. }
+    Cmp = CXBinaryOperator_Cmp,
+
+    { Less than operator. }
+    LT = CXBinaryOperator_LT,
+
+    { Greater than operator. }
+    GT = CXBinaryOperator_GT,
+
+    { Less or equal operator. }
+    LE = CXBinaryOperator_LE,
+
+    { Greater or equal operator. }
+    GE = CXBinaryOperator_GE,
+
+    { Equal operator. }
+    EQ = CXBinaryOperator_EQ,
+
+    { Not equal operator. }
+    NE = CXBinaryOperator_NE,
+
+    { Bitwise AND operator. }
+    &And = CXBinaryOperator_And,
+
+    { Bitwise XOR operator. }
+    &Xor = CXBinaryOperator_Xor,
+
+    { Bitwise OR operator. }
+    &Or = CXBinaryOperator_Or,
+
+    { Logical AND operator. }
+    LAnd = CXBinaryOperator_LAnd,
+
+    { Logical OR operator. }
+    LOr = CXBinaryOperator_LOr,
+
+    { Assignment operator. }
+    Assign = CXBinaryOperator_Assign,
+
+    { Multiplication assignment operator. }
+    MulAssign = CXBinaryOperator_MulAssign,
+
+    { Division assignment operator. }
+    DivAssign = CXBinaryOperator_DivAssign,
+
+    { Remainder assignment operator. }
+    RemAssign = CXBinaryOperator_RemAssign,
+
+    { Addition assignment operator. }
+    AddAssign = CXBinaryOperator_AddAssign,
+
+    { Subtraction assignment operator. }
+    SubAssign = CXBinaryOperator_SubAssign,
+
+    { Bitwise shift left assignment operator. }
+    ShlAssign = CXBinaryOperator_ShlAssign,
+
+    { Bitwise shift right assignment operator. }
+    ShrAssign = CXBinaryOperator_ShrAssign,
+
+    { Bitwise AND assignment operator. }
+    AndAssign = CXBinaryOperator_AndAssign,
+
+    { Bitwise XOR assignment operator. }
+    XorAssign = CXBinaryOperator_XorAssign,
+
+    { Bitwise OR assignment operator. }
+    OrAssign = CXBinaryOperator_OrAssign,
+
+    { Comma operator. }
+    Comma = CXBinaryOperator_Comma);
 
 type
-  { A policy that controls pretty printing for TCursor.PrettyPrinted }
-  IPrintingPolicy = interface
-  ['{AAEE40F0-049F-461A-B817-C9D7CC655A59}']
-    {$REGION 'Internal Declarations'}
-    function GetProperty(const AProp: TPrintingPolicyProperty): Integer;
-    procedure SetProperty(const AProp: TPrintingPolicyProperty; const AValue: Integer);
-    function GetHandle: TCXPrintingPolicy;
-    {$ENDREGION 'Internal Declarations'}
+  { Extends TBinaryOperatorKind }
+  TBinaryOperatorKindHelper = record helper for TBinaryOperatorKind
+  {$REGION 'Internal Declarations'}
+  private
+    function GetSpelling: String; inline;
+  {$ENDREGION 'Internal Declarations'}
+  public
+    { Text version of the binary operator kind. }
+    property Spelling: String read GetSpelling;
+  end;
 
-    { Get or set property values }
-    property Properties[const AProp: TPrintingPolicyProperty]: Integer read GetProperty write SetProperty;
+type
+  { Describes the kind of unary operators. }
+  TUnaryOperatorKind = (
+    { This value describes cursors which are not unary operators. }
+    Invalid = CXUnaryOperator_Invalid,
 
-    { Internal handle to C API }
-    property Handle: TCXPrintingPolicy read GetHandle;
+    { Postfix increment operator. }
+    PostInc = CXUnaryOperator_PostInc,
+
+    { Postfix decrement operator. }
+    PostDec = CXUnaryOperator_PostDec,
+
+    { Prefix increment operator. }
+    PreInc = CXUnaryOperator_PreInc,
+
+    { Prefix decrement operator. }
+    PreDec = CXUnaryOperator_PreDec,
+
+    { Address of operator. }
+    AddrOf = CXUnaryOperator_AddrOf,
+
+    { Dereference operator. }
+    Deref = CXUnaryOperator_Deref,
+
+    { Plus operator. }
+    Plus = CXUnaryOperator_Plus,
+
+    { Minus operator. }
+    Minus = CXUnaryOperator_Minus,
+
+    { Not operator. }
+    &Not = CXUnaryOperator_Not,
+
+    { LNot operator. }
+    LNot = CXUnaryOperator_LNot,
+
+    { __real expr" operator. }
+    Real = CXUnaryOperator_Real,
+
+    { __imag expr" operator. }
+    Imag = CXUnaryOperator_Imag,
+
+    { __extension__ marker operator. }
+    Extension = CXUnaryOperator_Extension,
+
+    { C++ co_await operator. }
+    Coawait = CXUnaryOperator_Coawait);
+
+type
+  { Extends TUnaryOperatorKind }
+  TUnaryOperatorKindHelper = record helper for TUnaryOperatorKind
+  {$REGION 'Internal Declarations'}
+  private
+    function GetSpelling: String; inline;
+  {$ENDREGION 'Internal Declarations'}
+  public
+    { Text version of the unary operator kind. }
+    property Spelling: String read GetSpelling;
+  end;
+
+type
+  { A data structure containing all the API information for a given translation
+    unit. This can be used for a single symbol symbol graph for a given symbol. }
+  IApiSet = interface
+  ['{70F12869-BD61-40AD-B850-A42F14745BA7}']
+    { Generate a single symbol symbol graph for the given USR. Returns an empty
+      string if the associated symbol can not be found in the API set.
+
+      The output contains the symbol graph as well as some additional
+      information about related symbols.
+
+      Parameters:
+        AUsr: a string containing the USR of the symbol to generate the symbol
+          graph for.
+
+      Returns:
+        A string containing the serialized symbol graph representation for
+        the symbol being queried or a null string if it can not be found in the
+        API set. }
+    function GetSymbolGraph(const AUsr: String): String;
   end;
 
 type
@@ -3043,6 +3525,13 @@ type
     function GetMangling: String; inline;
     function GetCxxManglings: TArray<String>;
     function GetObjCManglings: TArray<String>;
+    function GetGCCAssemblyTemplate: String; inline;
+    function GetGCCAssemblyHasGoto: Boolean; inline;
+    function GetGCCAssemblyNumOutputs: Integer; inline;
+    function GetGCCAssemblyNumInputs: Integer; inline;
+    function GetGCCAssemblyNumClobbers: Integer; inline;
+    function GetGCCAssemblyClobber(const AIndex: Integer): String; inline;
+    function GetGCCAssemblyIsVolatile: Boolean; inline;
     function GetModule: TModule; inline;
     function GetCxxConstructorIsConvertingConstructor: Boolean; inline;
     function GetCxxConstructorIsCopyConstructor: Boolean; inline;
@@ -3050,9 +3539,13 @@ type
     function GetCxxConstructorIsMoveConstructor: Boolean; inline;
     function GetCxxFieldIsMutable: Boolean; inline;
     function GetCxxMethodIsDefaulted: Boolean; inline;
+    function GetCxxMethodIsDeleted: Boolean; inline;
     function GetCxxMethodIsPureVirtual: Boolean; inline;
     function GetCxxMethodIsStatic: Boolean; inline;
     function GetCxxMethodIsVirtual: Boolean; inline;
+    function GetCxxMethodIsCopyAssignmentOperator: Boolean; inline;
+    function GetCxxMethodIsMoveAssignmentOperator: Boolean; inline;
+    function GetCxxMethodIsExplicit: Boolean; inline;
     function GetCxxRecordIsAbstract: Boolean; inline;
     function GetEnumDeclIsScoped: Boolean; inline;
     function GetCxxMethodIsConst: Boolean; inline;
@@ -3063,6 +3556,8 @@ type
     function GetIsAnonymousRecordDecl: Boolean; inline;
     function GetIsInlineNamespace: Boolean; inline;
     function GetPrintingPolicy: IPrintingPolicy;
+    function GetBinaryOperatorKind: TBinaryOperatorKind; inline;
+    function GetUnaryOperatorKind: TUnaryOperatorKind; inline;
     function GetObjCPropertyGetterName: String; inline;
     function GetObjCPropertySetterName: String; inline;
   private
@@ -3175,6 +3670,44 @@ type
       Returns:
         The pretty printed declaration or the empty string for other cursors. }
     function PrettyPrinted(const APolicy: IPrintingPolicy = nil): String; inline;
+
+    { Returns the offset in bits of a CXXBaseSpecifier relative to this parent
+      class.
+
+      Returns a small negative number if the offset cannot be computed. See
+      TTypeLayoutError for error codes. }
+    function GetOffsetOfBase(const ABase: TCursor): Int64; inline;
+
+    { Given a TCursorKind.GCCAsmStmt cursor, get the constraint and expression
+      cursor to the AIndex-th input.
+
+      This function returns True when the cursor points at a GCC inline assembly
+      statement and AIndex is within bounds. Otherwise, this function returns
+      False but leaves AConstraint and AExpr intact. }
+    function GetGCCAssemblyInput(const AIndex: Integer; out AConstraint: String;
+      out AExpr: TCursor): Boolean; inline;
+
+    { Given a TCursorKind.GCCAsmStmt cursor, get the constraint and expression
+      cursor to the AIndex-th output.
+
+      This function returns True when the cursor points at a GCC inline assembly
+      statement and AIndex is within bounds. Otherwise, this function returns
+      False but leaves AConstraint and AExpr intact. }
+    function GetGCCAssemblyOutput(const AIndex: Integer; out AConstraint: String;
+      out AExpr: TCursor): Boolean; inline;
+
+    { Generate a single symbol symbol graph for the declaration at this cursor.
+      Returns an empty string if the AST node for the cursor isn't a
+      declaration.
+
+      The output contains the symbol graph as well as some additional
+      information about related symbols.
+
+      Returns:
+        A string containing the serialized symbol graph representation for the
+        symbol being queried or an empty string if it can not be found in the
+        APISet. }
+    function GetSymbolGraph: String; inline;
 
     { The Null cursor, which represents no entity. }
     class property Null: TCursor read GetNull;
@@ -3380,8 +3913,8 @@ type
     property EnumConstantDeclUnsignedValue: UInt64 read GetEnumConstantDeclUnsignedValue;
 
     { The bit width of a bit field declaration as an integer.
-      If a cursor that is not a bit field declaration is passed in, -1 is
-      returned. }
+      If the cursor does not reference a bit-field, or if the bit-field's width
+      expression cannot be evaluated, -1 is returned. }
     property FieldDeclBitWidth: Integer read GetFieldDeclBitWidth;
 
     { The number of non-variadic arguments associated with the cursor.
@@ -3397,8 +3930,8 @@ type
       indices, an invalid cursor is returned. }
     property Arguments[const AIndex: Integer]: TCursor read GetArgument;
 
-    (*The number of template args of a function decl representing a template
-      specialization.
+    (*The number of template args of a function, struct or class  decl
+      representing a template specialization.
 
       If the argument cursor cannot be converted into a template function
       declaration, -1 is returned.
@@ -3418,8 +3951,9 @@ type
 
     (*The kind of the I'th template argument of the cursor.
 
-      If the argument cursor does not represent a FunctionDecl, an invalid
-      template argument kind is returned.
+      If the argument cursor does not represent a FunctionDecl, StructDecl, or
+      ClassTemplatePartialSpecialization, an invalid template argument kind is
+      returned.
 
       For example, for the following declaration and specialization:
 
@@ -3438,9 +3972,10 @@ type
     (*The type of a TemplateArgument of a function decl representing a template
       specialization.
 
-      If the argument cursor does not represent a FunctionDecl whose I'th
-      template argument has a kind of CXTemplateArgKind_Integral, an invalid
-      type is returned.
+      If the argument cursor does not represent a FunctionDecl, StructDecl,
+      ClassDecl or ClassTemplatePartialSpecialization whose I'th template
+      argument has a kind of TTemplateArgKind.Integral, an invalid type is
+      returned.
 
       For example, for the following declaration and specialization:
 
@@ -3460,7 +3995,9 @@ type
       a template specialization) as a signed Int64.
 
       It is undefined to call this function on a cursor that does not represent
-      a FunctionDecl or whose I'th template argument is not an integral value.
+      a FunctionDecl, StructDecl, ClassDecl or
+      ClassTemplatePartialSpecialization whose I'th template argument is not an
+      integral value.
 
       For example, for the following declaration and specialization:
 
@@ -3480,7 +4017,9 @@ type
       a template specialization) as an UInt64.
 
       It is undefined to call this function on a cursor that does not represent
-      a FunctionDecl or whose I'th template argument is not an integral value.
+      a FunctionDecl, StructDecl, ClassDecl or
+      ClassTemplatePartialSpecialization whose I'th template argument is not an
+      integral value.
 
       For example, for the following declaration and specialization:
 
@@ -3733,6 +4272,51 @@ type
       cursor. }
     property ObjCManglings: TArray<String> read GetObjCManglings;
 
+    (*Given a TCursorKind.GCCAsmStmt cursor, return the assembly template string.
+      As per LLVM IR Assembly Template language, template placeholders for
+      inputs and outputs are either of the form $N where N is a decimal number
+      as an index into the input-output specification, or ${N:M} where N is a
+      decimal number also as an index into the input-output specification and M
+      is the template argument modifier.
+      The index N in both cases points into the the total inputs and outputs,
+      or more specifically, into the list of outputs followed by the inputs,
+      starting from index 0 as the first available template argument.
+
+      This property also returns a valid empty string if the cursor does not
+      point at a GCC inline assembly block. *)
+    property GCCAssemblyTemplate: String read GetGCCAssemblyTemplate;
+
+    { Given a TCursorKind.GCCAsmStmt cursor, check if the assembly block has
+      goto labels. This property also returns False if the cursor does not point
+      at a GCC inline assembly block. }
+    property GCCAssemblyHasGoto: Boolean read GetGCCAssemblyHasGoto;
+
+    { Given a TCursorKind.GCCAsmStmt cursor, count the number of outputs.
+      This property also returns 0 if the cursor does not point at a GCC inline
+      assembly block. }
+    property GCCAssemblyNumOutputs: Integer read GetGCCAssemblyNumOutputs;
+
+    { Given a TCursorKind.GCCAsmStmt cursor, count the number of inputs.
+      This property also returns 0 if the cursor does not point at a GCC inline
+      assembly block. }
+    property GCCAssemblyNumInputs: Integer read GetGCCAssemblyNumInputs;
+
+    { Given a TCursorKind.GCCAsmStmt cursor, count the clobbers in it.
+      This property also returns 0 if the cursor does not point at a GCC inline
+      assembly block. }
+    property GCCAssemblyNumClobbers: Integer read GetGCCAssemblyNumClobbers;
+
+    { Given a TCursorKind.GCCAsmStmt cursor, get the AIndex-th clobber of it.
+      This property returns a valid empty string if the cursor does not point
+      at a GCC inline assembly block or AIndex is out of bounds. }
+    property GCCAssemblyClobbers[const AIndex: Integer]: String read GetGCCAssemblyClobber;
+
+    { Given a TCursorKind.GCCAsmStmt cursor, check if the inline assembly is
+      'volatile'.
+      This property returns False if the cursor does not point at a GCC inline
+      assembly block. }
+    property GCCAssemblyIsVolatile: Boolean read GetGCCAssemblyIsVolatile;
+
     { Given a ModuleImportDecl cursor, return the associated module. }
     property Module: TModule read GetModule;
 
@@ -3754,6 +4338,9 @@ type
     { Whether a C++ method is declared '= default'. }
     property CxxMethodIsDefaulted: Boolean read GetCxxMethodIsDefaulted;
 
+    { Whether a C++ method is declared '= delete'. }
+    property CxxMethodIsDeleted: Boolean read GetCxxMethodIsDeleted;
+
     { Whether a C++ member function or member function template is pure
       virtual. }
     property CxxMethodIsPureVirtual: Boolean read GetCxxMethodIsPureVirtual;
@@ -3766,6 +4353,107 @@ type
       declared 'virtual' or if it overrides a virtual method from one of the
       base classes. }
     property CxxMethodIsVirtual: Boolean read GetCxxMethodIsVirtual;
+
+    (*Whether a C++ member function is a copy-assignment operator, returning
+      True if such is the case and False otherwise.
+
+      A copy-assignment operator 'X::operator=' is a non-static, non-template
+      member function of class 'X' with exactly one parameter of type 'X', 'X&',
+      'const X&', 'volatile X&' or 'const volatile X&'.
+
+      That is, for example, the 'operator=' in:
+
+      @preformatted(
+        class Foo {
+            bool operator=(const volatile Foo&);
+        };
+      )
+
+      Is a copy-assignment operator, while the 'operator=' in:
+
+      @preformatted(
+        class Bar {
+            bool operator=(const int&);
+        };
+      )
+
+      Is not.*)
+    property CxxMethodIsCopyAssignmentOperator: Boolean read GetCxxMethodIsCopyAssignmentOperator;
+
+    (*Whether a C++ member function is a move-assignment operator, returning
+      True if such is the case and False otherwise.
+
+      A move-assignment operator 'X::operator=' is a non-static, non-template
+      member function of class 'X' with exactly one parameter of type 'X&&',
+      'const X&&', 'volatile X&&' or 'const volatile X&&'.
+
+      That is, for example, the 'operator=' in:
+
+      @preformatted(
+        class Foo {
+            bool operator=(const volatile Foo&&);
+        };
+      )
+
+      Is a move-assignment operator, while the 'operator=' in:
+
+      @preformatted(
+        class Bar {
+            bool operator=(const int&&);
+        };
+      )
+
+      Is not.*)
+    property CxxMethodIsMoveAssignmentOperator: Boolean read GetCxxMethodIsMoveAssignmentOperator;
+
+    (*Whether a C++ constructor or conversion function was declared explicit,
+      returning True if such is the case and False otherwise.
+
+      Constructors or conversion functions are declared explicit through
+      the use of the explicit specifier.
+
+      For example, the following constructor and conversion function are not
+      explicit as they lack the explicit specifier:
+
+      @preformatted(
+        class Foo {
+          Foo();
+          operator int();
+        };
+      )
+
+      While the following constructor and conversion function are explicit as
+      they are declared with the explicit specifier.
+
+      @preformatted(
+        class Foo {
+          explicit Foo();
+          explicit operator int();
+        };
+      )
+
+      This property will return False when given a cursor pointing to one of the
+      former declarations and it will return True for a cursor pointing to the
+      latter declarations.
+
+      The explicit specifier allows the user to specify a conditional
+      compile-time expression whose value decides whether the marked element is
+      explicit or not.
+
+      For example:
+
+      @preformatted(
+         constexpr bool foo(int i) { return i % 2 == 0; }
+
+         class Foo {
+              explicit(foo(1)) Foo();
+              explicit(foo(2)) operator int();
+         }
+      )
+
+      This property will return False for the constructor and True for the
+      conversion function. *)
+    property CxxMethodIsExplicit: Boolean read GetCxxMethodIsExplicit;
 
     { Whether a C++ record is abstract, i.e. whether a class or struct has
       a pure virtual member function. }
@@ -3824,6 +4512,14 @@ type
     { The default policy for the cursor.
       Can be used with PrettyPrinted. }
     property PrintingPolicy: IPrintingPolicy read GetPrintingPolicy;
+
+    { The binary operator kind of this cursor.
+      If this cursor is not a binary operator then returns Invalid. }
+    property BinaryOperatorKind: TBinaryOperatorKind read GetBinaryOperatorKind;
+
+    { The unary operator kind of this cursor.
+      If this cursor is not a unary operator then returns Invalid. }
+    property UnaryOperatorKind: TUnaryOperatorKind read GetUnaryOperatorKind;
 
     { Internal handle to C API }
     property Handle: TCXCursor read FHandle;
@@ -3923,6 +4619,38 @@ type
       prematurely, if the visitor returns TVisitorResult.Break. }
     function VisitFields(const AVisitor: TFieldVisitor): Boolean; overload;
     function VisitFields(const AVisitor: TFieldVisitorMethod): Boolean; overload;
+
+    { Visit the base classes of this type.
+
+      This function visits all the direct base classes of a the given cursor,
+      invoking the given AVisitor function with the cursors of each visited
+      base. The traversal may be ended prematurely, if the visitor returns
+      TVisitorResult.Break.
+
+      Parameters:
+        AVisitor: the visitor function that will be invoked for each base class.
+
+      Returns:
+        True if the traversal was terminated prematurely by the visitor
+        returning TVisitorResult.Break. }
+    function VisitCxxBaseClasses(const AVisitor: TFieldVisitor): Boolean; overload;
+    function VisitCxxBaseClasses(const AVisitor: TFieldVisitorMethod): Boolean; overload;
+
+    { Visit the class methods of this type.
+
+      This function visits all the methods of the given cursor, invoking the
+      given AVisitor function with the cursors of each visited method. The
+      traversal may be ended prematurely, if the visitor returns
+      TVisitorResult.Break.
+
+      Parameters:
+        AVisitor: the visitor function that will be invoked for each method.
+
+      Returns:
+        True if the traversal was terminated prematurely by the visitor
+        returning TVisitorResult.Break. }
+    function VisitCxxMethods(const AVisitor: TFieldVisitor): Boolean; overload;
+    function VisitCxxMethods(const AVisitor: TFieldVisitorMethod): Boolean; overload;
 
     { The cursor for the declaration of the given type. }
     property Declaration: TCursor read GetDeclaration;
@@ -4605,6 +5333,15 @@ type
         nil if no such token  exist. }
     function GetToken(const ALocation: TSourceLocation): ITokenList;
 
+    { Traverses the translation unit to create an IApiSet.
+
+      Parameters:
+        AApiSet: is set to the created API set.
+
+      Returns:
+        Error code indicating success or failure of the APISet creation. }
+    function CreateApiSet(out AApiSet: IApiSet): TError;
+
     { The number of diagnostics produced for this translation unit. }
     property DiagnosticCount: Integer read GetDiagnosticCount;
 
@@ -4761,7 +5498,8 @@ type
     CXXDestructor = CXIdxEntity_CXXDestructor,
     CXXConversionFunction = CXIdxEntity_CXXConversionFunction,
     CXXTypeAlias = CXIdxEntity_CXXTypeAlias,
-    CXXInterface = CXIdxEntity_CXXInterface);
+    CXXInterface = CXIdxEntity_CXXInterface,
+    CXXConcept = CXIdxEntity_CXXConcept);
 
 type
   TIdxEntityCxxTemplateKind = (
@@ -5245,12 +5983,12 @@ type
         then this is not reported as an error. Only if there is a failure from
         which there is no recovery, will an error be returned. }
     function IndexSourceFile(const AListener: IIndexerListener;
-      const AOptions: TIndexOptions; const ASourceFilename: String;
+      const AOptions: TIndexOpts; const ASourceFilename: String;
       const AClangCommandLineArgs: array of String;
       const AUnsavedFiles: TArray<TUnsavedFile> = nil;
       const ATUOptions: TTranslationUnitFlags = []): TError; overload;
     function IndexSourceFile(const AListener: IIndexerListener;
-      const AOptions: TIndexOptions; const ASourceFilename: String;
+      const AOptions: TIndexOpts; const ASourceFilename: String;
       const AClangCommandLineArgs: array of String;
       const AUnsavedFiles: TArray<TUnsavedFile>;
       const ATUOptions: TTranslationUnitFlags;
@@ -5275,7 +6013,7 @@ type
       * Declaration/reference callbacks invocations
       * Diagnostic callback invocations }
     function IndexTranslationUnit(const AListener: IIndexerListener;
-      const AOptions: TIndexOptions; const ATranslationUnit: ITranslationUnit): TError;
+      const AOptions: TIndexOpts; const ATranslationUnit: ITranslationUnit): TError;
 
     { Internal handle to C API }
     property Handle: TCXIndexAction read GetHandle;
@@ -5380,12 +6118,22 @@ type
         The index action or nil in case of an error. }
     function CreateIndexAction: IIndexAction;
 
-    { General options associated with an Index }
+    { General options associated with an Index.
+
+      Returns the final option values used by libclang after specifying the
+      option policies via TChoice enumerators.
+
+      Setting this property is deprecated. Use
+      TIndexOptions.ThreadBackgroundPriorityForIndexing and
+      TIndexOptions.ThreadBackgroundPriorityForEditing instead. }
     property GlobalOptions: TGlobalOptions read GetGlobalOptions write SetGlobalOptions;
 
     { The invocation emission path. Specifies a path which will contain log
       files for certain libclang invocations. An empty string (default) implies
-      that libclang invocations are not logged. }
+      that libclang invocations are not logged.
+
+      This property is deprecated. Use TIndexOptions.InvocationEmissionPath
+      instead. }
     property InvocationEmissionPath: String write SetInvocationEmissionPath;
 
     { Internal handle to C API }
@@ -5503,17 +6251,17 @@ type
   end;
 
 type
-  { Object encapsulating information about a module.map file. }
+  { Object encapsulating information about a module.modulemap file. }
   IModuleMapDescriptor = interface
   ['{4A0E063B-1438-4D74-90CC-54A7B5C80C85}']
     {$REGION 'Internal Declarations'}
     function GetHandle: TCXModuleMapDescriptor;
     {$ENDREGION 'Internal Declarations'}
 
-    { Sets the framework module name that the module.map describes. }
+    { Sets the framework module name that the module.modulemap describes. }
     function SetFrameworkModuleName(const AName: String): TError;
 
-    { Sets the umbrealla header name that the module.map describes. }
+    { Sets the umbrealla header name that the module.modulemap describes. }
     function SetUmbrellaHeader(const AName: String): TError;
 
     { Write out the descriptor object to a byte buffer. }
@@ -5521,31 +6269,6 @@ type
 
     { Internal handle to C API }
     property Handle: TCXModuleMapDescriptor read GetHandle;
-  end;
-
-type
-  { A remapping of original source files and their translated files.
-    Implemented by TRemapping. }
-  IRemapping = interface
-  ['{7F1E48C4-2937-4BDE-AF40-E4980B08043D}']
-    {$REGION 'Internal Declarations'}
-    function GetCount: Integer;
-    function GetOriginalFilename(const AIndex: Integer): String;
-    function GetAssociatedFilename(const AIndex: Integer): String;
-    function GetHandle: TCXRemapping;
-    {$ENDREGION 'Internal Declarations'}
-
-    { The number of remappings. }
-    property Count: Integer read GetCount;
-
-    { The original filenames from the remapping. }
-    property OriginalFilenames[const AIndex: Integer]: String read GetOriginalFilename;
-
-    { The associated filename from the remapping. }
-    property AssociatedFilenames[const AIndex: Integer]: String read GetAssociatedFilename;
-
-    { Internal handle to C API }
-    property Handle: TCXRemapping read GetHandle;
   end;
 
 type
@@ -5619,7 +6342,17 @@ type
       callbacks (which gives the indexer the same performance benefit as the
       compiler). }
     constructor Create(const AExcludeDeclarationsFromPCH,
-      ADisplayDiagnostics: Boolean);
+      ADisplayDiagnostics: Boolean); overload;
+
+    { Provides a shared context for creating translation units.
+
+      Use this constructor instead of the other overload if you need to
+      configure the additional options in TIndexOptions.
+
+      Returns:
+        The created index or nil in case of error. }
+    constructor Create(const AOptions: TIndexOptions); overload;
+
     destructor Destroy; override;
   end;
 
@@ -5743,43 +6476,6 @@ type
     destructor Destroy; override;
   end;
 
-type
-  { Implements IRemapping }
-  TRemapping = class(TInterfacedObject, IRemapping)
-  {$REGION 'Internal Declarations'}
-  private
-    FHandle: TCXRemapping;
-  protected
-    { IRemapping }
-    function GetCount: Integer;
-    function GetOriginalFilename(const AIndex: Integer): String;
-    function GetAssociatedFilename(const AIndex: Integer): String;
-    function GetHandle: TCXRemapping;
-  public
-    constructor Create(const AHandle: TCXRemapping); overload;
-  {$ENDREGION 'Internal Declarations'}
-  public
-    { Retrieve a remapping.
-
-      Parameters:
-        APath: the path that contains metadata about remappings.
-
-      Returns:
-        The requested remapping. Can return nil if an error occurred. }
-    class function Create(const APath: String): IRemapping; overload; static;
-
-    { Retrieve a remapping.
-
-      Parameters:
-        AFilePaths: array of file paths containing remapping info.
-
-      Returns:
-        The requested remapping. Can return nil if an error occurred. }
-    class function Create(const AFilePaths: array of String): IRemapping; overload; static;
-
-    destructor Destroy; override;
-  end;
-
 { Return a version string, suitable for showing to a user, but not intended to
   be parsed (the format is not guaranteed to be stable). }
 function GetClangVersion: String; inline;
@@ -5870,6 +6566,20 @@ type
   PFieldVisitorProc = ^TFieldVisitorProc;
 
 type
+  TApiSet = class(TInterfacedObject, IApiSet)
+  {$REGION 'Internal Declarations'}
+  private
+    FHandle: TCXAPISet;
+  protected
+    { IApiSet }
+    function GetSymbolGraph(const AUsr: String): String;
+  {$ENDREGION 'Internal Declarations'}
+  public
+    constructor Create(const AHandle: TCXAPISet);
+    destructor Destroy; override;
+  end;
+
+type
   TTranslationUnit = class(TInterfacedObject, ITranslationUnit)
   {$REGION 'Internal Declarations'}
   private
@@ -5921,6 +6631,7 @@ type
     function FindIncludesInFile(const AFile: TFile;
       const AVisitor: TCursorAndRangeVisitorMethod): TVisitResult; overload;
     function GetToken(const ALocation: TSourceLocation): ITokenList;
+    function CreateApiSet(out AApiSet: IApiSet): TError;
   public
     constructor Create(const AHandle: TCXTranslationUnit);
   {$ENDREGION 'Internal Declarations'}
@@ -5956,18 +6667,18 @@ type
     function GetHandle: TCXIndexAction;
 
     function IndexSourceFile(const AListener: IIndexerListener;
-      const AOptions: TIndexOptions; const ASourceFilename: String;
+      const AOptions: TIndexOpts; const ASourceFilename: String;
       const AClangCommandLineArgs: array of String;
       const AUnsavedFiles: TArray<TUnsavedFile>;
       const ATUOptions: TTranslationUnitFlags): TError; overload;
     function IndexSourceFile(const AListener: IIndexerListener;
-      const AOptions: TIndexOptions; const ASourceFilename: String;
+      const AOptions: TIndexOpts; const ASourceFilename: String;
       const AClangCommandLineArgs: array of String;
       const AUnsavedFiles: TArray<TUnsavedFile>;
       const ATUOptions: TTranslationUnitFlags;
       out ATranslationUnit: ITranslationUnit): TError; overload;
     function IndexTranslationUnit(const AListener: IIndexerListener;
-      const AOptions: TIndexOptions; const ATranslationUnit: ITranslationUnit): TError;
+      const AOptions: TIndexOpts; const ATranslationUnit: ITranslationUnit): TError;
   public
     constructor Create(const AHandle: TCXIndexAction);
   {$ENDREGION 'Internal Declarations'}
@@ -6357,6 +7068,12 @@ begin
   clang_getSpellingLocation(FHandle, @AFile, @ALine, @AColumn, @AOffset);
 end;
 
+function TSourceLocation.IsBeforeInTranslationUnit(
+  const AOther: TSourceLocation): Boolean;
+begin
+  Result := (clang_isBeforeInTranslationUnit(FHandle, AOther.FHandle) <> 0);
+end;
+
 class operator TSourceLocation.NotEqual(const ALeft,
   ARight: TSourceLocation): Boolean;
 begin
@@ -6446,6 +7163,12 @@ begin
   inherited Create;
   FHandle := clang_createIndex(Ord(AExcludeDeclarationsFromPCH),
     Ord(ADisplayDiagnostics));
+end;
+
+constructor TIndex.Create(const AOptions: TIndexOptions);
+begin
+  inherited Create;
+  FHandle := clang_createIndexWithOptions(@AOptions.FHandle);
 end;
 
 function TIndex.CreateIndexAction: IIndexAction;
@@ -6593,6 +7316,26 @@ begin
     clang_CXIndex_setInvocationEmissionPathOption(FHandle, PAnsiChar(AnsiString(AValue)));
 end;
 
+{ TApiSet }
+
+constructor TApiSet.Create(const AHandle: TCXAPISet);
+begin
+  inherited Create;
+  FHandle := AHandle;
+end;
+
+destructor TApiSet.Destroy;
+begin
+  clang_disposeAPISet(FHandle);
+  inherited;
+end;
+
+function TApiSet.GetSymbolGraph(const AUsr: String): String;
+begin
+  Result := CXStringToString(clang_getSymbolGraphForUSR(
+    PAnsiChar(AnsiString(AUsr)), FHandle));
+end;
+
 { TTranslationUnit }
 
 function TTranslationUnit.AnnotateTokens(
@@ -6653,6 +7396,16 @@ constructor TTranslationUnit.Create(const AHandle: TCXTranslationUnit);
 begin
   inherited Create;
   FHandle := AHandle;
+end;
+
+function TTranslationUnit.CreateApiSet(out AApiSet: IApiSet): TError;
+begin
+  var ApiSet: TCXAPISet;
+  Result := TError(clang_createAPISet(FHandle, ApiSet));
+  if (Result = TError.Success) then
+    AApiSet := TApiSet.Create(ApiSet)
+  else
+    AApiSet := nil;
 end;
 
 destructor TTranslationUnit.Destroy;
@@ -7045,7 +7798,7 @@ begin
 end;
 
 function TIndexAction.IndexSourceFile(const AListener: IIndexerListener;
-  const AOptions: TIndexOptions; const ASourceFilename: String;
+  const AOptions: TIndexOpts; const ASourceFilename: String;
   const AClangCommandLineArgs: array of String;
   const AUnsavedFiles: TArray<TUnsavedFile>;
   const ATUOptions: TTranslationUnitFlags;
@@ -7116,7 +7869,7 @@ begin
 end;
 
 function TIndexAction.IndexTranslationUnit(const AListener: IIndexerListener;
-  const AOptions: TIndexOptions;
+  const AOptions: TIndexOpts;
   const ATranslationUnit: ITranslationUnit): TError;
 var
   TU: TCXTranslationUnit;
@@ -7146,7 +7899,7 @@ begin
 end;
 
 function TIndexAction.IndexSourceFile(const AListener: IIndexerListener;
-  const AOptions: TIndexOptions; const ASourceFilename: String;
+  const AOptions: TIndexOpts; const ASourceFilename: String;
   const AClangCommandLineArgs: array of String;
   const AUnsavedFiles: TArray<TUnsavedFile>;
   const ATUOptions: TTranslationUnitFlags): TError;
@@ -7450,6 +8203,11 @@ begin
   Result := TAvailabilityKind(clang_getCursorAvailability(FHandle));
 end;
 
+function TCursor.GetBinaryOperatorKind: TBinaryOperatorKind;
+begin
+  Result := TBinaryOperatorKind(clang_getCursorBinaryOperatorKind(FHandle));
+end;
+
 function TCursor.GetBriefComment: String;
 begin
   Result := CXStringToString(clang_Cursor_getBriefCommentText(FHandle));
@@ -7525,9 +8283,29 @@ begin
   Result := (clang_CXXMethod_isConst(FHandle) <> 0);
 end;
 
+function TCursor.GetCxxMethodIsCopyAssignmentOperator: Boolean;
+begin
+  Result := (clang_CXXMethod_isCopyAssignmentOperator(FHandle) <> 0);
+end;
+
 function TCursor.GetCxxMethodIsDefaulted: Boolean;
 begin
   Result := (clang_CXXMethod_isDefaulted(FHandle) <> 0);
+end;
+
+function TCursor.GetCxxMethodIsDeleted: Boolean;
+begin
+  Result := (clang_CXXMethod_isDeleted(FHandle) <> 0);
+end;
+
+function TCursor.GetCxxMethodIsExplicit: Boolean;
+begin
+  Result := (clang_CXXMethod_isExplicit(FHandle) <> 0);
+end;
+
+function TCursor.GetCxxMethodIsMoveAssignmentOperator: Boolean;
+begin
+  Result := (clang_CXXMethod_isMoveAssignmentOperator(FHandle) <> 0);
 end;
 
 function TCursor.GetCxxMethodIsPureVirtual: Boolean;
@@ -7598,6 +8376,61 @@ end;
 function TCursor.GetFieldDeclBitWidth: Integer;
 begin
   Result := clang_getFieldDeclBitWidth(FHandle);
+end;
+
+function TCursor.GetGCCAssemblyClobber(const AIndex: Integer): String;
+begin
+  Result := CXStringToString(clang_Cursor_getGCCAssemblyClobber(FHandle, AIndex));
+end;
+
+function TCursor.GetGCCAssemblyHasGoto: Boolean;
+begin
+  Result := (clang_Cursor_isGCCAssemblyHasGoto(FHandle) <> 0);
+end;
+
+function TCursor.GetGCCAssemblyInput(const AIndex: Integer;
+  out AConstraint: String; out AExpr: TCursor): Boolean;
+begin
+  var Constraint: TCXString;
+  Result := (clang_Cursor_getGCCAssemblyInput(FHandle, AIndex, @Constraint,
+    @AExpr.FHandle) <> 0);
+  if (Result) then
+    AConstraint := CXStringToString(Constraint);
+end;
+
+function TCursor.GetGCCAssemblyIsVolatile: Boolean;
+begin
+  Result := (clang_Cursor_isGCCAssemblyVolatile(FHandle) <> 0);
+end;
+
+function TCursor.GetGCCAssemblyNumClobbers: Integer;
+begin
+  Result := clang_Cursor_getGCCAssemblyNumClobbers(FHandle);
+end;
+
+function TCursor.GetGCCAssemblyNumInputs: Integer;
+begin
+  Result := clang_Cursor_getGCCAssemblyNumInputs(FHandle);
+end;
+
+function TCursor.GetGCCAssemblyNumOutputs: Integer;
+begin
+  Result := clang_Cursor_getGCCAssemblyNumOutputs(FHandle);
+end;
+
+function TCursor.GetGCCAssemblyOutput(const AIndex: Integer;
+  out AConstraint: String; out AExpr: TCursor): Boolean;
+begin
+  var Constraint: TCXString;
+  Result := (clang_Cursor_getGCCAssemblyOutput(FHandle, AIndex, @Constraint,
+    @AExpr.FHandle) <> 0);
+  if (Result) then
+    AConstraint := CXStringToString(Constraint);
+end;
+
+function TCursor.GetGCCAssemblyTemplate: String;
+begin
+  Result := CXStringToString(clang_Cursor_getGCCAssemblyTemplate(FHandle));
 end;
 
 function TCursor.GetHasAttributes: Boolean;
@@ -7820,6 +8653,11 @@ begin
   Result := clang_Cursor_getObjCSelectorIndex(FHandle);
 end;
 
+function TCursor.GetOffsetOfBase(const ABase: TCursor): Int64;
+begin
+  Result := clang_getOffsetOfBase(FHandle, ABase.FHandle);
+end;
+
 function TCursor.GetOffsetOfField: Int64;
 begin
   Result := clang_Cursor_getOffsetOfField(FHandle);
@@ -7941,6 +8779,11 @@ begin
   Result := TStorageClass(clang_Cursor_getStorageClass(FHandle));
 end;
 
+function TCursor.GetSymbolGraph: String;
+begin
+  Result := CXStringToString(clang_getSymbolGraphForCursor(FHandle));
+end;
+
 function TCursor.GetTemplateArgumentCount: Integer;
 begin
   Result := clang_Cursor_getNumTemplateArguments(FHandle);
@@ -7981,6 +8824,11 @@ end;
 function TCursor.GetTypedefDeclUnderlyingType: TType;
 begin
   Result.FHandle := clang_getTypedefDeclUnderlyingType(FHandle);
+end;
+
+function TCursor.GetUnaryOperatorKind: TUnaryOperatorKind;
+begin
+  Result := TUnaryOperatorKind(clang_getCursorUnaryOperatorKind(FHandle));
 end;
 
 function TCursor.GetUsr: TUnifiedSymbolResolution;
@@ -8163,6 +9011,20 @@ end;
 function TCompletionString.IsNull: Boolean;
 begin
   Result := (FHandle = nil);
+end;
+
+{ TBinaryOperatorKindHelper }
+
+function TBinaryOperatorKindHelper.GetSpelling: String;
+begin
+  Result := CXStringToString(clang_getBinaryOperatorKindSpelling(Ord(Self)));
+end;
+
+{ TUnaryOperatorKindHelper }
+
+function TUnaryOperatorKindHelper.GetSpelling: String;
+begin
+  Result := CXStringToString(clang_getUnaryOperatorKindSpelling(Ord(Self)));
 end;
 
 { TCompilationDatabase }
@@ -8518,6 +9380,104 @@ begin
   Result := (clang_CXCursorSet_insert(FHandle, ACursor.FHandle) <> 0);
 end;
 
+{ TIndexOptions }
+
+function TIndexOptions.GetDisplayDiagnostics: Boolean;
+begin
+  Result := ((FHandle.Flags and $0002) <> 0);
+end;
+
+function TIndexOptions.GetExcludeDeclarationsFromPCH: Boolean;
+begin
+  Result := ((FHandle.Flags and $0001) <> 0);
+end;
+
+function TIndexOptions.GetInvocationEmissionPath: String;
+begin
+  Result := String(FInvocationEmissionPath);
+end;
+
+function TIndexOptions.GetPreambleStoragePath: String;
+begin
+  Result := String(FPreambleStoragePath);
+end;
+
+function TIndexOptions.GetStorePreamblesInMemory: Boolean;
+begin
+  Result := ((FHandle.Flags and $0004) <> 0);
+end;
+
+function TIndexOptions.GetThreadBackgroundPriorityForEditing: TChoice;
+begin
+  Result := TChoice(FHandle.ThreadBackgroundPriorityForEditing);
+end;
+
+function TIndexOptions.GetThreadBackgroundPriorityForIndexing: TChoice;
+begin
+  Result := TChoice(FHandle.ThreadBackgroundPriorityForIndexing);
+end;
+
+class operator TIndexOptions.Initialize(out ADest: TIndexOptions);
+begin
+  FillChar(ADest.FHandle, SizeOf(ADest.FHandle), 0);
+  ADest.FHandle.Size := SizeOf(ADest.FHandle);
+  ADest.FPreambleStoragePath := '';
+  ADest.FInvocationEmissionPath := '';
+end;
+
+procedure TIndexOptions.SetDisplayDiagnostics(const AValue: Boolean);
+begin
+  FHandle.Flags := FHandle.Flags and (not $0002) or (Ord(AValue) shl 1);
+end;
+
+procedure TIndexOptions.SetExcludeDeclarationsFromPCH(const AValue: Boolean);
+begin
+  FHandle.Flags := FHandle.Flags and (not $0001) or (Ord(AValue));
+end;
+
+procedure TIndexOptions.SetInvocationEmissionPath(const AValue: String);
+begin
+  var S := AnsiString(AValue);
+  if (S <> FInvocationEmissionPath) then
+  begin
+    FInvocationEmissionPath := S;
+    if (S = '') then
+      FHandle.InvocationEmissionPath := nil
+    else
+      FHandle.InvocationEmissionPath := PAnsiChar(S);
+  end;
+end;
+
+procedure TIndexOptions.SetPreambleStoragePath(const AValue: String);
+begin
+  var S := AnsiString(AValue);
+  if (S <> FPreambleStoragePath) then
+  begin
+    FPreambleStoragePath := S;
+    if (S = '') then
+      FHandle.PreambleStoragePath := nil
+    else
+      FHandle.PreambleStoragePath := PAnsiChar(S);
+  end;
+end;
+
+procedure TIndexOptions.SetStorePreamblesInMemory(const AValue: Boolean);
+begin
+  FHandle.Flags := FHandle.Flags and (not $0004) or (Ord(AValue) shl 2);
+end;
+
+procedure TIndexOptions.SetThreadBackgroundPriorityForEditing(
+  const AValue: TChoice);
+begin
+  FHandle.ThreadBackgroundPriorityForEditing := Ord(AValue);
+end;
+
+procedure TIndexOptions.SetThreadBackgroundPriorityForIndexing(
+  const AValue: TChoice);
+begin
+  FHandle.ThreadBackgroundPriorityForIndexing := Ord(AValue);
+end;
+
 { TType }
 
 class operator TType.Equal(const ALeft, ARight: TType): Boolean;
@@ -8585,6 +9545,20 @@ begin
   Result := TExceptionSpecificationKind(clang_getExceptionSpecificationType(FHandle));
 end;
 
+function TType.GetFullyQualifiedName(const APolicy: IPrintingPolicy;
+  const AWithGlobalNsPrefix: Boolean): String;
+var
+  Policy: TCXPrintingPolicy;
+begin
+  if (APolicy = nil) then
+    Policy := nil
+  else
+    Policy := APolicy.Handle;
+
+  Result := CXStringToString(clang_getFullyQualifiedName(FHandle, Policy,
+    Ord(AWithGlobalNsPrefix)));
+end;
+
 function TType.GetFunctionCallingConv: TCallingConv;
 begin
   Result := TCallingConv(clang_getFunctionTypeCallingConv(FHandle));
@@ -8638,6 +9612,11 @@ end;
 function TType.GetNamedType: TType;
 begin
   Result.FHandle := clang_Type_getNamedType(FHandle);
+end;
+
+function TType.GetNonReferenceType: TType;
+begin
+  Result.FHandle := clang_getNonReferenceType(FHandle);
 end;
 
 function TType.GetNullability: TTypeNullabilityKind;
@@ -8715,6 +9694,11 @@ begin
   Result := CXStringToString(clang_getTypedefName(FHandle));
 end;
 
+function TType.GetUnqualifiedType: TType;
+begin
+  Result.FHandle := clang_getUnqualifiedType(FHandle);
+end;
+
 function TType.GetValueType: TType;
 begin
   Result.FHandle := clang_Type_getValueType(FHandle);
@@ -8723,6 +9707,18 @@ end;
 class operator TType.NotEqual(const ALeft, ARight: TType): Boolean;
 begin
   Result := (clang_equalTypes(ALeft.FHandle, ARight.FHandle) = 0);
+end;
+
+function TType.PrettyPrinted(const APolicy: IPrintingPolicy): String;
+var
+  Policy: TCXPrintingPolicy;
+begin
+  if (APolicy = nil) then
+    Policy := nil
+  else
+    Policy := APolicy.Handle;
+
+  Result := CXStringToString(clang_getTypePrettyPrinted(FHandle, Policy));
 end;
 
 { TTypeHelper }
@@ -8744,6 +9740,49 @@ end;
 function TTypeHelper.GetDeclaration: TCursor;
 begin
   Result.FHandle := clang_getTypeDeclaration(FHandle);
+end;
+
+function TTypeHelper.VisitCxxBaseClasses(
+  const AVisitor: TFieldVisitorMethod): Boolean;
+var
+  Proc: TFieldVisitorProc;
+begin
+  Proc.Anon := nil;
+  Proc.Meth := AVisitor;
+
+  Result := (clang_visitCXXBaseClasses(FHandle, FieldVisitor, @Proc) <> 0);
+end;
+
+function TTypeHelper.VisitCxxBaseClasses(
+  const AVisitor: TFieldVisitor): Boolean;
+var
+  Proc: TFieldVisitorProc;
+begin
+  Proc.Anon := AVisitor;
+  Proc.Meth := nil;
+
+  Result := (clang_visitCXXBaseClasses(FHandle, FieldVisitor, @Proc) <> 0);
+end;
+
+function TTypeHelper.VisitCxxMethods(
+  const AVisitor: TFieldVisitorMethod): Boolean;
+var
+  Proc: TFieldVisitorProc;
+begin
+  Proc.Anon := nil;
+  Proc.Meth := AVisitor;
+
+  Result := (clang_visitCXXMethods(FHandle, FieldVisitor, @Proc) <> 0);
+end;
+
+function TTypeHelper.VisitCxxMethods(const AVisitor: TFieldVisitor): Boolean;
+var
+  Proc: TFieldVisitorProc;
+begin
+  Proc.Anon := AVisitor;
+  Proc.Meth := nil;
+
+  Result := (clang_visitCXXMethods(FHandle, FieldVisitor, @Proc) <> 0);
 end;
 
 function TTypeHelper.VisitFields(const AVisitor: TFieldVisitorMethod): Boolean;
@@ -8904,79 +9943,6 @@ procedure TPrintingPolicy.SetProperty(const AProp: TPrintingPolicyProperty;
   const AValue: Integer);
 begin
   clang_PrintingPolicy_setProperty(FHandle, Ord(AProp), AValue);
-end;
-
-{ TRemapping }
-
-class function TRemapping.Create(const AFilePaths: array of String): IRemapping;
-var
-  Handle: TCXRemapping;
-  PathStrings: TArray<AnsiString>;
-  PathPtrs: TArray<PAnsiChar>;
-  I: Integer;
-begin
-  SetLength(PathStrings, Length(AFilePaths));
-  SetLength(PathPtrs, Length(AFilePaths));
-  for I := 0 to Length(AFilePaths) - 1 do
-  begin
-    PathStrings[I] := AnsiString(AFilePaths[I]);
-    PathPtrs[I] := PAnsiChar(PathStrings[I]);
-  end;
-
-  Handle := clang_getRemappingsFromFileList(@PathPtrs[0], Length(PathPtrs));
-  if (Handle = nil) then
-    Result := nil
-  else
-    Result := TRemapping.Create(Handle);
-end;
-
-class function TRemapping.Create(const APath: String): IRemapping;
-var
-  Handle: TCXRemapping;
-begin
-  Handle := clang_getRemappings(PAnsiChar(AnsiString(APath)));
-  if (Handle = nil) then
-    Result := nil
-  else
-    Result := TRemapping.Create(Handle);
-end;
-
-constructor TRemapping.Create(const AHandle: TCXRemapping);
-begin
-  inherited Create;
-  FHandle := AHandle;
-end;
-
-destructor TRemapping.Destroy;
-begin
-  clang_remap_dispose(FHandle);
-  inherited;
-end;
-
-function TRemapping.GetAssociatedFilename(const AIndex: Integer): String;
-var
-  S: TCXString;
-begin
-  clang_remap_getFilenames(FHandle, AIndex, nil, @S);
-  Result := CXStringToString(S);
-end;
-
-function TRemapping.GetCount: Integer;
-begin
-  Result := clang_remap_getNumFiles(FHandle);
-end;
-
-function TRemapping.GetHandle: TCXRemapping;
-begin
-  Result := FHandle;
-end;
-
-function TRemapping.GetOriginalFilename(const AIndex: Integer): String;
-var
-  S: TCXString;
-begin
-  clang_remap_getFilenames(FHandle, AIndex, @S, nil);
-  Result := CXStringToString(S);
 end;
 
 { TIdxIncludedFileInfo }

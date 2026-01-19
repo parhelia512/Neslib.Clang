@@ -8,7 +8,7 @@ You can find an article about *libclang for Delphi* on [my blog](https://blog.gr
 
 Neslib.Clang leverages libclang in two ways:  
 
-The unit `Neslib.Clang.Api` providers the header translations for libclang  version 14.0. You can use these header translations as you would use libclang  from a C language. The documentation for the C API can be found here: <https://clang.llvm.org/doxygen/index.html>   
+The unit `Neslib.Clang.Api` providers the header translations for libclang  version 21.1.8. You can use these header translations as you would use libclang  from a C language. The documentation for the C API can be found here: <https://clang.llvm.org/doxygen/index.html>   
 
 The unit `Neslib.Clang` provides a higher level abstraction of the libclang  API. It provides a thin class model on top of the libclang API, making it easier  to use from Delphi. In addition, it provides automatic memory management so you  don't have to worry about what resources to release and when.  
 

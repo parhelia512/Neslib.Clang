@@ -24,6 +24,9 @@ Win64/
 *.dproj.local
 *.identcache
 *.groupproj.local
+*.delphilsp.json
+*.stat
+*.tvsconfig
 #ignore temporary help files
 HtmlHelp/
 Html/

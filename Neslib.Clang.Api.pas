@@ -1,5 +1,5 @@
 unit Neslib.Clang.Api;
-{< LibClang 14.0.0 Header Translation }
+{< LibClang 21.1.8 Header Translation }
 
 {$IFNDEF MSWINDOWS}
   {$MESSAGE Error 'Clang for Delphi (currently) only works on Windows'}
@@ -101,6 +101,10 @@ type
 
 (**
  * Retrieve the character data associated with the given string.
+ *
+ * The returned data is a reference and not owned by the user. This data
+ * is only valid while the `CXString` is valid. This function is similar
+ * to `std::string::c_str()`.
  *)
 function clang_getCString(_string: TCXString): PAnsiChar; cdecl external LIBCLANG;
 
@@ -333,7 +337,7 @@ procedure clang_free(buffer: Pointer); cdecl external LIBCLANG;
 procedure clang_VirtualFileOverlay_dispose(p1: TCXVirtualFileOverlay); cdecl external LIBCLANG;
 
 (**
- * Object encapsulating information about a module.map file.
+ * Object encapsulating information about a module.modulemap file.
  *)
 type TCXModuleMapDescriptor = Pointer;
 
@@ -346,13 +350,13 @@ type TCXModuleMapDescriptor = Pointer;
 function clang_ModuleMapDescriptor_create(options: Cardinal): TCXModuleMapDescriptor; cdecl external LIBCLANG;
 
 (**
- * Sets the framework module name that the module.map describes.
+ * Sets the framework module name that the module.modulemap describes.
  * \returns 0 for success, non-zero to indicate an error.
  *)
 function clang_ModuleMapDescriptor_setFrameworkModuleName(p1: TCXModuleMapDescriptor; const name: PAnsiChar): TCXErrorCode; cdecl external LIBCLANG;
 
 (**
- * Sets the umbrealla header name that the module.map describes.
+ * Sets the umbrealla header name that the module.modulemap describes.
  * \returns 0 for success, non-zero to indicate an error.
  *)
 function clang_ModuleMapDescriptor_setUmbrellaHeader(p1: TCXModuleMapDescriptor; const name: PAnsiChar): TCXErrorCode; cdecl external LIBCLANG;
@@ -374,247 +378,7 @@ function clang_ModuleMapDescriptor_writeToBuffer(p1: TCXModuleMapDescriptor; opt
 procedure clang_ModuleMapDescriptor_dispose(p1: TCXModuleMapDescriptor); cdecl external LIBCLANG;
 {$ENDREGION 'BuildSystem.h'}
 
-{$REGION 'Index.h'}
-(*===-- clang-c/Index.h - Indexing Public C Interface -------------*- C -*-===*\
-|*                                                                            *|
-|* Part of the LLVM Project, under the Apache License v2.0 with LLVM          *|
-|* Exceptions.                                                                *|
-|* See https://llvm.org/LICENSE.txt for license information.                  *|
-|* SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception                    *|
-|*                                                                            *|
-|*===----------------------------------------------------------------------===*|
-|*                                                                            *|
-|* This header provides a public interface to a Clang library for extracting  *|
-|* high-level symbol information from source files without exposing the full  *|
-|* Clang C++ API.                                                             *|
-|*                                                                            *|
-\*===----------------------------------------------------------------------===*)
-
-(**
- * The version constants for the libclang API.
- * CINDEX_VERSION_MINOR should increase when there are API additions.
- * CINDEX_VERSION_MAJOR is intended for "major" source/ABI breaking changes.
- *
- * The policy about the libclang API was always to keep it source and ABI
- * compatible, thus CINDEX_VERSION_MAJOR is expected to remain stable.
- *)
-const CINDEX_VERSION_MAJOR = 0;
-const CINDEX_VERSION_MINOR = 62;
-
-{!#define CINDEX_VERSION_ENCODE(major, minor) (
-      ((major) * 10000)
-    + ((minor) *     1))}
-
-const CINDEX_VERSION = (CINDEX_VERSION_MAJOR * 10000) + CINDEX_VERSION_MINOR;
-
-{!#define CINDEX_VERSION_STRINGIZE_(major, minor)
-    #major"."#minor}
-{!#define CINDEX_VERSION_STRINGIZE(major, minor)
-    CINDEX_VERSION_STRINGIZE_(major, minor)}
-
-const CINDEX_VERSION_STRING = '0.60';
-
-(** \defgroup CINDEX libclang: C Interface to Clang
- *
- * The C Interface to Clang provides a relatively small API that exposes
- * facilities for parsing source code into an abstract syntax tree (AST),
- * loading already-parsed ASTs, traversing the AST, associating
- * physical source locations with elements within the AST, and other
- * facilities that support Clang-based development tools.
- *
- * This C interface to Clang will never provide all of the information
- * representation stored in Clang's C++ AST, nor should it: the intent is to
- * maintain an API that is relatively stable from one release to the next,
- * providing only the basic functionality needed to support development tools.
- *
- * To avoid namespace pollution, data types are prefixed with "CX" and
- * functions are prefixed with "clang_".
- *
- * @{
- *)
-
-(**
- * An "index" that consists of a set of translation units that would
- * typically be linked together into an executable or library.
- *)
-type TCXIndex = Pointer;
-
-(**
- * An opaque type representing target information for a given translation
- * unit.
- *)
-type TCXTargetInfo = Pointer;
-
-(**
- * A single translation unit, which resides in an index.
- *)
-type TCXTranslationUnit = Pointer;
-type PCXTranslationUnit = ^TCXTranslationUnit;
-
-(**
- * Opaque pointer representing client data that will be passed through
- * to various callbacks and visitors.
- *)
-type TCXClientData = Pointer;
-
-(**
- * Provides the contents of a file that has not yet been saved to disk.
- *
- * Each CXUnsavedFile instance provides the name of a file on the
- * system along with the current contents of that file that have not
- * yet been saved to disk.
- *)
-type
-  TCXUnsavedFile = record
-    Filename: PAnsiChar;
-    Contents: PAnsiChar;
-    Length: Longword;
-  end;
-  PCXUnsavedFile = ^TCXUnsavedFile;
-
-(**
- * Describes the availability of a particular entity, which indicates
- * whether the use of this entity will result in a warning or error due to
- * it being deprecated or unavailable.
- *)
-type
-  TCXAvailabilityKind = Integer;
-
-const
-  CXAvailability_Available = 0;
-  CXAvailability_Deprecated = CXAvailability_Available + 1;
-  CXAvailability_NotAvailable = CXAvailability_Deprecated + 1;
-  CXAvailability_NotAccessible = CXAvailability_NotAvailable + 1;
-
-(**
- * Describes a version number of the form major.minor.subminor.
- *)
-type
-  TCXVersion = record
-    Major: Integer;
-    Minor: Integer;
-    Subminor: Integer;
-  end;
-  PCXVersion = ^TCXVersion;
-
-(**
- * Describes the exception specification of a cursor.
- *
- * A negative value indicates that the cursor is not a function declaration.
- *)
-type
-  TCXCursor_ExceptionSpecificationKind = Integer;
-
-const
-  CXCursor_ExceptionSpecificationKind_None = 0;
-  CXCursor_ExceptionSpecificationKind_DynamicNone = CXCursor_ExceptionSpecificationKind_None + 1;
-  CXCursor_ExceptionSpecificationKind_Dynamic = CXCursor_ExceptionSpecificationKind_DynamicNone + 1;
-  CXCursor_ExceptionSpecificationKind_MSAny = CXCursor_ExceptionSpecificationKind_Dynamic + 1;
-  CXCursor_ExceptionSpecificationKind_BasicNoexcept = CXCursor_ExceptionSpecificationKind_MSAny + 1;
-  CXCursor_ExceptionSpecificationKind_ComputedNoexcept = CXCursor_ExceptionSpecificationKind_BasicNoexcept + 1;
-  CXCursor_ExceptionSpecificationKind_Unevaluated = CXCursor_ExceptionSpecificationKind_ComputedNoexcept + 1;
-  CXCursor_ExceptionSpecificationKind_Uninstantiated = CXCursor_ExceptionSpecificationKind_Unevaluated + 1;
-  CXCursor_ExceptionSpecificationKind_Unparsed = CXCursor_ExceptionSpecificationKind_Uninstantiated + 1;
-  CXCursor_ExceptionSpecificationKind_NoThrow = CXCursor_ExceptionSpecificationKind_Unparsed + 1;
-
-(**
- * Provides a shared context for creating translation units.
- *
- * It provides two options:
- *
- * - excludeDeclarationsFromPCH: When non-zero, allows enumeration of "local"
- * declarations (when loading any new translation units). A "local" declaration
- * is one that belongs in the translation unit itself and not in a precompiled
- * header that was used by the translation unit. If zero, all declarations
- * will be enumerated.
- *
- * Here is an example:
- *
- * \code
- *   // excludeDeclsFromPCH = 1, displayDiagnostics=1
- *   Idx = clang_createIndex(1, 1);
- *
- *   // IndexTest.pch was produced with the following command:
- *   // "clang -x c IndexTest.h -emit-ast -o IndexTest.pch"
- *   TU = clang_createTranslationUnit(Idx, "IndexTest.pch");
- *
- *   // This will load all the symbols from 'IndexTest.pch'
- *   clang_visitChildren(clang_getTranslationUnitCursor(TU),
- *                       TranslationUnitVisitor, 0);
- *   clang_disposeTranslationUnit(TU);
- *
- *   // This will load all the symbols from 'IndexTest.c', excluding symbols
- *   // from 'IndexTest.pch'.
- *   char *args[] = { "-Xclang", "-include-pch=IndexTest.pch" };
- *   TU = clang_createTranslationUnitFromSourceFile(Idx, "IndexTest.c", 2, args,
- *                                                  0, 0);
- *   clang_visitChildren(clang_getTranslationUnitCursor(TU),
- *                       TranslationUnitVisitor, 0);
- *   clang_disposeTranslationUnit(TU);
- * \endcode
- *
- * This process of creating the 'pch', loading it separately, and using it (via
- * -include-pch) allows 'excludeDeclsFromPCH' to remove redundant callbacks
- * (which gives the indexer the same performance benefit as the compiler).
- *)
-function clang_createIndex(excludeDeclarationsFromPCH: Integer; displayDiagnostics: Integer): TCXIndex; cdecl external LIBCLANG;
-
-(**
- * Destroy the given index.
- *
- * The index must not be destroyed until all of the translation units created
- * within that index have been destroyed.
- *)
-procedure clang_disposeIndex(index: TCXIndex); cdecl external LIBCLANG;
-
-type
-  TCXGlobalOptFlags = Integer;
-
-const
-  CXGlobalOpt_None = $0;
-  CXGlobalOpt_ThreadBackgroundPriorityForIndexing = $1;
-  CXGlobalOpt_ThreadBackgroundPriorityForEditing = $2;
-  CXGlobalOpt_ThreadBackgroundPriorityForAll = CXGlobalOpt_ThreadBackgroundPriorityForIndexing
-    or CXGlobalOpt_ThreadBackgroundPriorityForEditing;
-
-(**
- * Sets general options associated with a CXIndex.
- *
- * For example:
- * \code
- * CXIndex idx = ...;
- * clang_CXIndex_setGlobalOptions(idx,
- *     clang_CXIndex_getGlobalOptions(idx) |
- *     CXGlobalOpt_ThreadBackgroundPriorityForIndexing);
- * \endcode
- *
- * \param options A bitmask of options, a bitwise OR of CXGlobalOpt_XXX flags.
- *)
-procedure clang_CXIndex_setGlobalOptions(p1: TCXIndex; options: Cardinal); cdecl external LIBCLANG;
-
-(**
- * Gets the general options associated with a CXIndex.
- *
- * \returns A bitmask of options, a bitwise OR of CXGlobalOpt_XXX flags that
- * are associated with the given CXIndex object.
- *)
-function clang_CXIndex_getGlobalOptions(p1: TCXIndex): Cardinal; cdecl external LIBCLANG;
-
-(**
- * Sets the invocation emission path option in a CXIndex.
- *
- * The invocation emission path specifies a path which will contain log
- * files for certain libclang invocations. A null value (default) implies that
- * libclang invocations are not logged..
- *)
-procedure clang_CXIndex_setInvocationEmissionPathOption(p1: TCXIndex; const Path: PAnsiChar); cdecl external LIBCLANG;
-
-(**
- * \defgroup CINDEX_FILES File manipulation routines
- *
- * @{
- *)
-
+{$REGION 'CXFile.h'}
 (**
  * A particular source file that is part of a translation unit.
  *)
@@ -652,39 +416,6 @@ type
 function clang_getFileUniqueID(_file: TCXFile; outID: PCXFileUniqueID): Integer; cdecl external LIBCLANG;
 
 (**
- * Determine whether the given header is guarded against
- * multiple inclusions, either with the conventional
- * \#ifndef/\#define/\#endif macro guards or with \#pragma once.
- *)
-function clang_isFileMultipleIncludeGuarded(tu: TCXTranslationUnit; _file: TCXFile): Cardinal; cdecl external LIBCLANG;
-
-(**
- * Retrieve a file handle within the given translation unit.
- *
- * \param tu the translation unit
- *
- * \param file_name the name of the file.
- *
- * \returns the file handle for the named file in the translation unit \p tu,
- * or a NULL file handle if the file was not a part of this translation unit.
- *)
-function clang_getFile(tu: TCXTranslationUnit; const file_name: PAnsiChar): TCXFile; cdecl external LIBCLANG;
-
-(**
- * Retrieve the buffer associated with the given file.
- *
- * \param tu the translation unit
- *
- * \param file the file for which to retrieve the buffer.
- *
- * \param size [out] if non-NULL, will be set to the size of the buffer.
- *
- * \returns a pointer to the buffer in memory that holds the contents of
- * \p file, or a NULL pointer when the file is not loaded.
- *)
-function clang_getFileContents(tu: TCXTranslationUnit; _file: TCXFile; size: PSIZE_T): PAnsiChar; cdecl external LIBCLANG;
-
-(**
  * Returns non-zero if the \c file1 and \c file2 point to the same file,
  * or they are both NULL.
  *)
@@ -696,11 +427,9 @@ function clang_File_isEqual(file1: TCXFile; file2: TCXFile): Integer; cdecl exte
  * An empty string may be returned. Use \c clang_getFileName() in that case.
  *)
 function clang_File_tryGetRealPathName(_file: TCXFile): TCXString; cdecl external LIBCLANG;
+{$ENDREGION 'CXFile.h'}
 
-(**
- * @}
- *)
-
+{$REGION 'CXSourceLocation.h'}
 (**
  * \defgroup CINDEX_LOCATIONS Physical source locations
  *
@@ -758,15 +487,13 @@ function clang_getNullLocation(): TCXSourceLocation; cdecl external LIBCLANG;
 function clang_equalLocations(loc1: TCXSourceLocation; loc2: TCXSourceLocation): Cardinal; cdecl external LIBCLANG;
 
 (**
- * Retrieves the source location associated with a given file/line/column
- * in a particular translation unit.
+ * Determine for two source locations if the first comes
+ * strictly before the second one in the source code.
+ *
+ * \returns non-zero if the first source location comes
+ * strictly before the second one, zero otherwise.
  *)
-function clang_getLocation(tu: TCXTranslationUnit; _file: TCXFile; line: Cardinal; column: Cardinal): TCXSourceLocation; cdecl external LIBCLANG;
-(**
- * Retrieves the source location associated with a given character offset
- * in a particular translation unit.
- *)
-function clang_getLocationForOffset(tu: TCXTranslationUnit; _file: TCXFile; offset: Cardinal): TCXSourceLocation; cdecl external LIBCLANG;
+function clang_isBeforeInTranslationUnit(loc1, loc2: TCXSourceLocation): Cardinal; cdecl external LIBCLANG;
 
 (**
  * Returns non-zero if the given source location is in a system header.
@@ -950,31 +677,12 @@ type
   PCXSourceRangeList = ^TCXSourceRangeList;
 
 (**
- * Retrieve all ranges that were skipped by the preprocessor.
- *
- * The preprocessor will skip lines when they are surrounded by an
- * if/ifdef/ifndef directive whose condition does not evaluate to true.
- *)
-function clang_getSkippedRanges(tu: TCXTranslationUnit; _file: TCXFile): PCXSourceRangeList; cdecl external LIBCLANG;
-
-(**
- * Retrieve all ranges from all files that were skipped by the
- * preprocessor.
- *
- * The preprocessor will skip lines when they are surrounded by an
- * if/ifdef/ifndef directive whose condition does not evaluate to true.
- *)
-function clang_getAllSkippedRanges(tu: TCXTranslationUnit): PCXSourceRangeList; cdecl external LIBCLANG;
-
-(**
  * Destroy the given \c CXSourceRangeList.
  *)
 procedure clang_disposeSourceRangeList(ranges: PCXSourceRangeList); cdecl external LIBCLANG;
+{$ENDREGION 'CXSourceLocation.h'}
 
-(**
- * @}
- *)
-
+{$REGION 'CXDiagnostic.h'}
 (**
  * \defgroup CINDEX_DIAG Diagnostic reporting
  *
@@ -1062,31 +770,6 @@ procedure clang_disposeDiagnosticSet(Diags: TCXDiagnosticSet); cdecl external LI
  * clang_disposeDiagnosticSet.
  *)
 function clang_getChildDiagnostics(D: TCXDiagnostic): TCXDiagnosticSet; cdecl external LIBCLANG;
-
-(**
- * Determine the number of diagnostics produced for the given
- * translation unit.
- *)
-function clang_getNumDiagnostics(_Unit: TCXTranslationUnit): Cardinal; cdecl external LIBCLANG;
-
-(**
- * Retrieve a diagnostic associated with the given translation unit.
- *
- * \param Unit the translation unit to query.
- * \param Index the zero-based diagnostic number to retrieve.
- *
- * \returns the requested diagnostic. This diagnostic must be freed
- * via a call to \c clang_disposeDiagnostic().
- *)
-function clang_getDiagnostic(_Unit: TCXTranslationUnit; Index: Cardinal): TCXDiagnostic; cdecl external LIBCLANG;
-
-(**
- * Retrieve the complete set of diagnostics associated with a
- *        translation unit.
- *
- * \param Unit the translation unit to query.
- *)
-function clang_getDiagnosticSetFromTU(_Unit: TCXTranslationUnit): TCXDiagnosticSet; cdecl external LIBCLANG;
 
 (**
  * Destroy a diagnostic.
@@ -1252,6 +935,458 @@ function clang_getDiagnosticNumFixIts(Diagnostic: TCXDiagnostic): Cardinal; cdec
  * code indicated by the \c ReplacementRange.
  *)
 function clang_getDiagnosticFixIt(Diagnostic: TCXDiagnostic; FixIt: Cardinal; ReplacementRange: PCXSourceRange): TCXString; cdecl external LIBCLANG;
+{$ENDREGION 'CXDiagnostic.h'}
+
+{$REGION 'Index.h'}
+(*===-- clang-c/Index.h - Indexing Public C Interface -------------*- C -*-===*\
+|*                                                                            *|
+|* Part of the LLVM Project, under the Apache License v2.0 with LLVM          *|
+|* Exceptions.                                                                *|
+|* See https://llvm.org/LICENSE.txt for license information.                  *|
+|* SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception                    *|
+|*                                                                            *|
+|*===----------------------------------------------------------------------===*|
+|*                                                                            *|
+|* This header provides a public interface to a Clang library for extracting  *|
+|* high-level symbol information from source files without exposing the full  *|
+|* Clang C++ API.                                                             *|
+|*                                                                            *|
+\*===----------------------------------------------------------------------===*)
+
+(**
+ * The version constants for the libclang API.
+ * CINDEX_VERSION_MINOR should increase when there are API additions.
+ * CINDEX_VERSION_MAJOR is intended for "major" source/ABI breaking changes.
+ *
+ * The policy about the libclang API was always to keep it source and ABI
+ * compatible, thus CINDEX_VERSION_MAJOR is expected to remain stable.
+ *)
+const CINDEX_VERSION_MAJOR = 0;
+const CINDEX_VERSION_MINOR = 64;
+
+{!#define CINDEX_VERSION_ENCODE(major, minor) (
+      ((major) * 10000)
+    + ((minor) *     1))}
+
+const CINDEX_VERSION = (CINDEX_VERSION_MAJOR * 10000) + CINDEX_VERSION_MINOR;
+
+{!#define CINDEX_VERSION_STRINGIZE_(major, minor)
+    #major"."#minor}
+{!#define CINDEX_VERSION_STRINGIZE(major, minor)
+    CINDEX_VERSION_STRINGIZE_(major, minor)}
+
+const CINDEX_VERSION_STRING = '0.60';
+
+(** \defgroup CINDEX libclang: C Interface to Clang
+ *
+ * The C Interface to Clang provides a relatively small API that exposes
+ * facilities for parsing source code into an abstract syntax tree (AST),
+ * loading already-parsed ASTs, traversing the AST, associating
+ * physical source locations with elements within the AST, and other
+ * facilities that support Clang-based development tools.
+ *
+ * This C interface to Clang will never provide all of the information
+ * representation stored in Clang's C++ AST, nor should it: the intent is to
+ * maintain an API that is relatively stable from one release to the next,
+ * providing only the basic functionality needed to support development tools.
+ *
+ * To avoid namespace pollution, data types are prefixed with "CX" and
+ * functions are prefixed with "clang_".
+ *
+ * @{
+ *)
+
+(**
+ * An "index" that consists of a set of translation units that would
+ * typically be linked together into an executable or library.
+ *)
+type TCXIndex = Pointer;
+
+(**
+ * An opaque type representing target information for a given translation
+ * unit.
+ *)
+type TCXTargetInfo = Pointer;
+
+(**
+ * A single translation unit, which resides in an index.
+ *)
+type TCXTranslationUnit = Pointer;
+type PCXTranslationUnit = ^TCXTranslationUnit;
+
+(**
+ * Opaque pointer representing client data that will be passed through
+ * to various callbacks and visitors.
+ *)
+type TCXClientData = Pointer;
+
+(**
+ * Provides the contents of a file that has not yet been saved to disk.
+ *
+ * Each CXUnsavedFile instance provides the name of a file on the
+ * system along with the current contents of that file that have not
+ * yet been saved to disk.
+ *)
+type
+  TCXUnsavedFile = record
+    Filename: PAnsiChar;
+    Contents: PAnsiChar;
+    Length: Longword;
+  end;
+  PCXUnsavedFile = ^TCXUnsavedFile;
+
+(**
+ * Describes the availability of a particular entity, which indicates
+ * whether the use of this entity will result in a warning or error due to
+ * it being deprecated or unavailable.
+ *)
+type
+  TCXAvailabilityKind = Integer;
+
+const
+  CXAvailability_Available = 0;
+  CXAvailability_Deprecated = CXAvailability_Available + 1;
+  CXAvailability_NotAvailable = CXAvailability_Deprecated + 1;
+  CXAvailability_NotAccessible = CXAvailability_NotAvailable + 1;
+
+(**
+ * Describes a version number of the form major.minor.subminor.
+ *)
+type
+  TCXVersion = record
+    Major: Integer;
+    Minor: Integer;
+    Subminor: Integer;
+  end;
+  PCXVersion = ^TCXVersion;
+
+(**
+ * Describes the exception specification of a cursor.
+ *
+ * A negative value indicates that the cursor is not a function declaration.
+ *)
+type
+  TCXCursor_ExceptionSpecificationKind = Integer;
+
+const
+  CXCursor_ExceptionSpecificationKind_None = 0;
+  CXCursor_ExceptionSpecificationKind_DynamicNone = CXCursor_ExceptionSpecificationKind_None + 1;
+  CXCursor_ExceptionSpecificationKind_Dynamic = CXCursor_ExceptionSpecificationKind_DynamicNone + 1;
+  CXCursor_ExceptionSpecificationKind_MSAny = CXCursor_ExceptionSpecificationKind_Dynamic + 1;
+  CXCursor_ExceptionSpecificationKind_BasicNoexcept = CXCursor_ExceptionSpecificationKind_MSAny + 1;
+  CXCursor_ExceptionSpecificationKind_ComputedNoexcept = CXCursor_ExceptionSpecificationKind_BasicNoexcept + 1;
+  CXCursor_ExceptionSpecificationKind_Unevaluated = CXCursor_ExceptionSpecificationKind_ComputedNoexcept + 1;
+  CXCursor_ExceptionSpecificationKind_Uninstantiated = CXCursor_ExceptionSpecificationKind_Unevaluated + 1;
+  CXCursor_ExceptionSpecificationKind_Unparsed = CXCursor_ExceptionSpecificationKind_Uninstantiated + 1;
+  CXCursor_ExceptionSpecificationKind_NoThrow = CXCursor_ExceptionSpecificationKind_Unparsed + 1;
+
+(**
+ * Provides a shared context for creating translation units.
+ *
+ * It provides two options:
+ *
+ * - excludeDeclarationsFromPCH: When non-zero, allows enumeration of "local"
+ * declarations (when loading any new translation units). A "local" declaration
+ * is one that belongs in the translation unit itself and not in a precompiled
+ * header that was used by the translation unit. If zero, all declarations
+ * will be enumerated.
+ *
+ * Here is an example:
+ *
+ * \code
+ *   // excludeDeclsFromPCH = 1, displayDiagnostics=1
+ *   Idx = clang_createIndex(1, 1);
+ *
+ *   // IndexTest.pch was produced with the following command:
+ *   // "clang -x c IndexTest.h -emit-ast -o IndexTest.pch"
+ *   TU = clang_createTranslationUnit(Idx, "IndexTest.pch");
+ *
+ *   // This will load all the symbols from 'IndexTest.pch'
+ *   clang_visitChildren(clang_getTranslationUnitCursor(TU),
+ *                       TranslationUnitVisitor, 0);
+ *   clang_disposeTranslationUnit(TU);
+ *
+ *   // This will load all the symbols from 'IndexTest.c', excluding symbols
+ *   // from 'IndexTest.pch'.
+ *   char *args[] = { "-Xclang", "-include-pch=IndexTest.pch" };
+ *   TU = clang_createTranslationUnitFromSourceFile(Idx, "IndexTest.c", 2, args,
+ *                                                  0, 0);
+ *   clang_visitChildren(clang_getTranslationUnitCursor(TU),
+ *                       TranslationUnitVisitor, 0);
+ *   clang_disposeTranslationUnit(TU);
+ * \endcode
+ *
+ * This process of creating the 'pch', loading it separately, and using it (via
+ * -include-pch) allows 'excludeDeclsFromPCH' to remove redundant callbacks
+ * (which gives the indexer the same performance benefit as the compiler).
+ *)
+function clang_createIndex(excludeDeclarationsFromPCH: Integer; displayDiagnostics: Integer): TCXIndex; cdecl external LIBCLANG;
+
+(**
+ * Destroy the given index.
+ *
+ * The index must not be destroyed until all of the translation units created
+ * within that index have been destroyed.
+ *)
+procedure clang_disposeIndex(index: TCXIndex); cdecl external LIBCLANG;
+
+type
+  TCXChoice = Integer;
+
+const
+  CXChoice_Default = 0;
+  CXChoice_Enabled = 1;
+  CXChoice_Disabled = 2;
+
+type
+  TCXGlobalOptFlags = Integer;
+
+const
+  CXGlobalOpt_None = $0;
+  CXGlobalOpt_ThreadBackgroundPriorityForIndexing = $1;
+  CXGlobalOpt_ThreadBackgroundPriorityForEditing = $2;
+  CXGlobalOpt_ThreadBackgroundPriorityForAll = CXGlobalOpt_ThreadBackgroundPriorityForIndexing
+    or CXGlobalOpt_ThreadBackgroundPriorityForEditing;
+
+type
+  (**
+   * Index initialization options.
+   *
+   * 0 is the default value of each member of this struct except for Size.
+   * Initialize the struct in one of the following three ways to avoid adapting
+   * code each time a new member is added to it:
+   * \code
+   * CXIndexOptions Opts;
+   * memset(&Opts, 0, sizeof(Opts));
+   * Opts.Size = sizeof(CXIndexOptions);
+   * \endcode
+   * or explicitly initialize the first data member and zero-initialize the rest:
+   * \code
+   * CXIndexOptions Opts = { sizeof(CXIndexOptions) };
+   * \endcode
+   * or to prevent the -Wmissing-field-initializers warning for the above version:
+   * \code
+   * CXIndexOptions Opts{};
+   * Opts.Size = sizeof(CXIndexOptions);
+   * \endcode *)
+  TCXIndexOptions = record
+    (**
+     * The size of struct CXIndexOptions used for option versioning.
+     *
+     * Always initialize this member to sizeof(CXIndexOptions), or assign
+     * sizeof(CXIndexOptions) to it right after creating a CXIndexOptions object.
+     *)
+    Size: Cardinal;
+
+    (**
+     * A CXChoice enumerator that specifies the indexing priority policy.
+     * \sa CXGlobalOpt_ThreadBackgroundPriorityForIndexing
+     *)
+    ThreadBackgroundPriorityForIndexing: Byte;
+
+    (**
+     * A CXChoice enumerator that specifies the editing priority policy.
+     * \sa CXGlobalOpt_ThreadBackgroundPriorityForEditing
+     *)
+    ThreadBackgroundPriorityForEditing: Byte;
+
+    (**
+     * \see clang_createIndex()
+     *)
+    Flags: Word;
+
+    (**
+     * The path to a directory, in which to store temporary PCH files. If null or
+     * empty, the default system temporary directory is used. These PCH files are
+     * deleted on clean exit but stay on disk if the program crashes or is killed.
+     *
+     * This option is ignored if \a StorePreamblesInMemory is non-zero.
+     *
+     * Libclang does not create the directory at the specified path in the file
+     * system. Therefore it must exist, or storing PCH files will fail.
+     *)
+    PreambleStoragePath: PAnsiChar;
+
+    (**
+     * Specifies a path which will contain log files for certain libclang
+     * invocations. A null value implies that libclang invocations are not logged.
+     *)
+    InvocationEmissionPath: PAnsiChar;
+  end;
+  PCXIndexOptions = ^TCXIndexOptions;
+
+(**
+ * Provides a shared context for creating translation units.
+ *
+ * Call this function instead of clang_createIndex() if you need to configure
+ * the additional options in CXIndexOptions.
+ *
+ * \returns The created index or null in case of error, such as an unsupported
+ * value of options->Size.
+ *
+ * For example:
+ * \code
+ * CXIndex createIndex(const char *ApplicationTemporaryPath) {
+ *   const int ExcludeDeclarationsFromPCH = 1;
+ *   const int DisplayDiagnostics = 1;
+ *   CXIndex Idx;
+ * #if CINDEX_VERSION_MINOR >= 64
+ *   CXIndexOptions Opts;
+ *   memset(&Opts, 0, sizeof(Opts));
+ *   Opts.Size = sizeof(CXIndexOptions);
+ *   Opts.ThreadBackgroundPriorityForIndexing = 1;
+ *   Opts.ExcludeDeclarationsFromPCH = ExcludeDeclarationsFromPCH;
+ *   Opts.DisplayDiagnostics = DisplayDiagnostics;
+ *   Opts.PreambleStoragePath = ApplicationTemporaryPath;
+ *   Idx = clang_createIndexWithOptions(&Opts);
+ *   if (Idx)
+ *     return Idx;
+ *   fprintf(stderr,
+ *           "clang_createIndexWithOptions() failed. "
+ *           "CINDEX_VERSION_MINOR = %d, sizeof(CXIndexOptions) = %u\n",
+ *           CINDEX_VERSION_MINOR, Opts.Size);
+ * #else
+ *   (void)ApplicationTemporaryPath;
+ * #endif
+ *   Idx = clang_createIndex(ExcludeDeclarationsFromPCH, DisplayDiagnostics);
+ *   clang_CXIndex_setGlobalOptions(
+ *       Idx, clang_CXIndex_getGlobalOptions(Idx) |
+ *                CXGlobalOpt_ThreadBackgroundPriorityForIndexing);
+ *   return Idx;
+ * }
+ * \endcode
+ *
+ * \sa clang_createIndex()
+ *)
+function clang_createIndexWithOptions(const options: PCXIndexOptions): TCXIndex; cdecl external LIBCLANG;
+
+(**
+ * Sets general options associated with a CXIndex.
+ *
+ * For example:
+ * \code
+ * CXIndex idx = ...;
+ * clang_CXIndex_setGlobalOptions(idx,
+ *     clang_CXIndex_getGlobalOptions(idx) |
+ *     CXGlobalOpt_ThreadBackgroundPriorityForIndexing);
+ * \endcode
+ *
+ * \param options A bitmask of options, a bitwise OR of CXGlobalOpt_XXX flags.
+ *)
+procedure clang_CXIndex_setGlobalOptions(p1: TCXIndex; options: Cardinal); cdecl external LIBCLANG;
+
+(**
+ * Gets the general options associated with a CXIndex.
+ *
+ * \returns A bitmask of options, a bitwise OR of CXGlobalOpt_XXX flags that
+ * are associated with the given CXIndex object.
+ *)
+function clang_CXIndex_getGlobalOptions(p1: TCXIndex): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Sets the invocation emission path option in a CXIndex.
+ *
+ * The invocation emission path specifies a path which will contain log
+ * files for certain libclang invocations. A null value (default) implies that
+ * libclang invocations are not logged..
+ *)
+procedure clang_CXIndex_setInvocationEmissionPathOption(p1: TCXIndex; const Path: PAnsiChar); cdecl external LIBCLANG;
+
+(**
+ * \defgroup CINDEX_FILES File manipulation routines
+ *
+ * @{
+ *)
+
+(**
+ * Determine whether the given header is guarded against
+ * multiple inclusions, either with the conventional
+ * \#ifndef/\#define/\#endif macro guards or with \#pragma once.
+ *)
+function clang_isFileMultipleIncludeGuarded(tu: TCXTranslationUnit; _file: TCXFile): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Retrieve a file handle within the given translation unit.
+ *
+ * \param tu the translation unit
+ *
+ * \param file_name the name of the file.
+ *
+ * \returns the file handle for the named file in the translation unit \p tu,
+ * or a NULL file handle if the file was not a part of this translation unit.
+ *)
+function clang_getFile(tu: TCXTranslationUnit; const file_name: PAnsiChar): TCXFile; cdecl external LIBCLANG;
+
+(**
+ * Retrieve the buffer associated with the given file.
+ *
+ * \param tu the translation unit
+ *
+ * \param file the file for which to retrieve the buffer.
+ *
+ * \param size [out] if non-NULL, will be set to the size of the buffer.
+ *
+ * \returns a pointer to the buffer in memory that holds the contents of
+ * \p file, or a NULL pointer when the file is not loaded.
+ *)
+function clang_getFileContents(tu: TCXTranslationUnit; _file: TCXFile; size: PSIZE_T): PAnsiChar; cdecl external LIBCLANG;
+
+(**
+ * @}
+ *)
+
+(**
+ * Retrieves the source location associated with a given file/line/column
+ * in a particular translation unit.
+ *)
+function clang_getLocation(tu: TCXTranslationUnit; _file: TCXFile; line: Cardinal; column: Cardinal): TCXSourceLocation; cdecl external LIBCLANG;
+(**
+ * Retrieves the source location associated with a given character offset
+ * in a particular translation unit.
+ *)
+function clang_getLocationForOffset(tu: TCXTranslationUnit; _file: TCXFile; offset: Cardinal): TCXSourceLocation; cdecl external LIBCLANG;
+
+(**
+ * Retrieve all ranges that were skipped by the preprocessor.
+ *
+ * The preprocessor will skip lines when they are surrounded by an
+ * if/ifdef/ifndef directive whose condition does not evaluate to true.
+ *)
+function clang_getSkippedRanges(tu: TCXTranslationUnit; _file: TCXFile): PCXSourceRangeList; cdecl external LIBCLANG;
+
+(**
+ * Retrieve all ranges from all files that were skipped by the
+ * preprocessor.
+ *
+ * The preprocessor will skip lines when they are surrounded by an
+ * if/ifdef/ifndef directive whose condition does not evaluate to true.
+ *)
+function clang_getAllSkippedRanges(tu: TCXTranslationUnit): PCXSourceRangeList; cdecl external LIBCLANG;
+
+(**
+ * Determine the number of diagnostics produced for the given
+ * translation unit.
+ *)
+function clang_getNumDiagnostics(_Unit: TCXTranslationUnit): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Retrieve a diagnostic associated with the given translation unit.
+ *
+ * \param Unit the translation unit to query.
+ * \param Index the zero-based diagnostic number to retrieve.
+ *
+ * \returns the requested diagnostic. This diagnostic must be freed
+ * via a call to \c clang_disposeDiagnostic().
+ *)
+function clang_getDiagnostic(_Unit: TCXTranslationUnit; Index: Cardinal): TCXDiagnostic; cdecl external LIBCLANG;
+
+(**
+ * Retrieve the complete set of diagnostics associated with a
+ *        translation unit.
+ *
+ * \param Unit the translation unit to query.
+ *)
+function clang_getDiagnosticSetFromTU(_Unit: TCXTranslationUnit): TCXDiagnosticSet; cdecl external LIBCLANG;
 
 (**
  * @}
@@ -1782,13 +1917,17 @@ const
   CXCursor_LambdaExpr = 144;
   CXCursor_ObjCBoolLiteralExpr = 145;
   CXCursor_ObjCSelfExpr = 146;
-  CXCursor_OMPArraySectionExpr = 147;
+  CXCursor_ArraySectionExpr = 147;
   CXCursor_ObjCAvailabilityCheckExpr = 148;
   CXCursor_FixedPointLiteral = 149;
   CXCursor_OMPArrayShapingExpr = 150;
   CXCursor_OMPIteratorExpr = 151;
   CXCursor_CXXAddrspaceCastExpr = 152;
-  CXCursor_LastExpr = CXCursor_CXXAddrspaceCastExpr;
+  CXCursor_ConceptSpecializationExpr = 153;
+  CXCursor_RequiresExpr = 154;
+  CXCursor_CXXParenListInitExpr = 155;
+  CXCursor_PackIndexingExpr = 156;
+  CXCursor_LastExpr = CXCursor_PackIndexingExpr;
   CXCursor_FirstStmt = 200;
   CXCursor_UnexposedStmt = 200;
   CXCursor_LabelStmt = 201;
@@ -1887,8 +2026,37 @@ const
   CXCursor_OMPUnrollDirective = 293;
   CXCursor_OMPMetaDirective = 294;
   CXCursor_OMPGenericLoopDirective = 295;
-  CXCursor_LastStmt = CXCursor_OMPGenericLoopDirective;
-  CXCursor_TranslationUnit = 300;
+  CXCursor_OMPTeamsGenericLoopDirective = 296;
+  CXCursor_OMPTargetTeamsGenericLoopDirective = 297;
+  CXCursor_OMPParallelGenericLoopDirective = 298;
+  CXCursor_OMPTargetParallelGenericLoopDirective = 299;
+  CXCursor_OMPParallelMaskedDirective = 300;
+  CXCursor_OMPMaskedTaskLoopDirective = 301;
+  CXCursor_OMPMaskedTaskLoopSimdDirective = 302;
+  CXCursor_OMPParallelMaskedTaskLoopDirective = 303;
+  CXCursor_OMPParallelMaskedTaskLoopSimdDirective = 304;
+  CXCursor_OMPErrorDirective = 305;
+  CXCursor_OMPScopeDirective = 306;
+  CXCursor_OMPReverseDirective = 307;
+  CXCursor_OMPInterchangeDirective = 308;
+  CXCursor_OMPAssumeDirective = 309;
+  CXCursor_OMPStripeDirective = 310;
+  CXCursor_OpenACCComputeConstruct = 320;
+  CXCursor_OpenACCLoopConstruct = 321;
+  CXCursor_OpenACCCombinedConstruct = 322;
+  CXCursor_OpenACCDataConstruct = 323;
+  CXCursor_OpenACCEnterDataConstruct = 324;
+  CXCursor_OpenACCExitDataConstruct = 325;
+  CXCursor_OpenACCHostDataConstruct = 326;
+  CXCursor_OpenACCWaitConstruct = 327;
+  CXCursor_OpenACCInitConstruct = 328;
+  CXCursor_OpenACCShutdownConstruct = 329;
+  CXCursor_OpenACCSetConstruct = 330;
+  CXCursor_OpenACCUpdateConstruct = 331;
+  CXCursor_OpenACCAtomicConstruct = 332;
+  CXCursor_OpenACCCacheConstruct = 333;
+  CXCursor_LastStmt = CXCursor_OpenACCCacheConstruct;
+  CXCursor_TranslationUnit = 350;
   CXCursor_FirstAttr = 400;
   CXCursor_UnexposedAttr = 400;
   CXCursor_IBActionAttr = 401;
@@ -1944,8 +2112,9 @@ const
   CXCursor_TypeAliasTemplateDecl = 601;
   CXCursor_StaticAssert = 602;
   CXCursor_FriendDecl = 603;
+  CXCursor_ConceptDecl = 604;
   CXCursor_FirstExtraDecl = CXCursor_ModuleImportDecl;
-  CXCursor_LastExtraDecl = CXCursor_FriendDecl;
+  CXCursor_LastExtraDecl = CXCursor_ConceptDecl;
   CXCursor_OverloadCandidate = 700;
 
 (**
@@ -2597,12 +2766,20 @@ const
   CXType_OCLIntelSubgroupAVCImeResult = 169;
   CXType_OCLIntelSubgroupAVCRefResult = 170;
   CXType_OCLIntelSubgroupAVCSicResult = 171;
+  CXType_OCLIntelSubgroupAVCImeResultSingleReferenceStreamout = 172;
+  CXType_OCLIntelSubgroupAVCImeResultDualReferenceStreamout = 173;
+  CXType_OCLIntelSubgroupAVCImeSingleReferenceStreamin = 174;
+  CXType_OCLIntelSubgroupAVCImeDualReferenceStreamin = 175;
   CXType_OCLIntelSubgroupAVCImeResultSingleRefStreamout = 172;
   CXType_OCLIntelSubgroupAVCImeResultDualRefStreamout = 173;
   CXType_OCLIntelSubgroupAVCImeSingleRefStreamin = 174;
   CXType_OCLIntelSubgroupAVCImeDualRefStreamin = 175;
   CXType_ExtVector = 176;
   CXType_Atomic = 177;
+  CXType_BTFTagAttributed = 178;
+  CXType_HLSLResource = 179;
+  CXType_HLSLAttributedResource = 180;
+  CXType_HLSLInlineSpirv = 181;
 
 (**
  * Describes the calling convention of a function type
@@ -2630,6 +2807,22 @@ const
   CXCallingConv_PreserveAll = 15;
   CXCallingConv_AArch64VectorCall = 16;
   CXCallingConv_SwiftAsync = 17;
+  CXCallingConv_AArch64SVEPCS = 18;
+  CXCallingConv_M68kRTD = 19;
+  CXCallingConv_PreserveNone = 20;
+  CXCallingConv_RISCVVectorCall = 21;
+  CXCallingConv_RISCVVLSCall_32 = 22;
+  CXCallingConv_RISCVVLSCall_64 = 23;
+  CXCallingConv_RISCVVLSCall_128 = 24;
+  CXCallingConv_RISCVVLSCall_256 = 25;
+  CXCallingConv_RISCVVLSCall_512 = 26;
+  CXCallingConv_RISCVVLSCall_1024 = 27;
+  CXCallingConv_RISCVVLSCall_2048 = 28;
+  CXCallingConv_RISCVVLSCall_4096 = 29;
+  CXCallingConv_RISCVVLSCall_8192 = 30;
+  CXCallingConv_RISCVVLSCall_16384 = 31;
+  CXCallingConv_RISCVVLSCall_32768 = 32;
+  CXCallingConv_RISCVVLSCall_65536 = 33;
   CXCallingConv_Invalid = 100;
   CXCallingConv_Unexposed = 200;
 
@@ -2692,6 +2885,11 @@ function clang_getEnumConstantDeclValue(C: TCXCursor): Int64; cdecl external LIB
  * must be verified before calling this function.
  *)
 function clang_getEnumConstantDeclUnsignedValue(C: TCXCursor): UInt64; cdecl external LIBCLANG;
+
+(**
+ * Returns non-zero if the cursor specifies a Record member that is a bit-field.
+ *)
+function clang_Cursor_isBitField(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
 
 (**
  * Retrieve the bit width of a bit field declaration as an integer.
@@ -2904,6 +3102,54 @@ function clang_getTypedefName(CT: TCXType): TCXString; cdecl external LIBCLANG;
  * For pointer types, returns the type of the pointee.
  *)
 function clang_getPointeeType(T: TCXType): TCXType; cdecl external LIBCLANG;
+
+(**
+ * Retrieve the unqualified variant of the given type, removing as
+ * little sugar as possible.
+ *
+ * For example, given the following series of typedefs:
+ *
+ * \code
+ * typedef int Integer;
+ * typedef const Integer CInteger;
+ * typedef CInteger DifferenceType;
+ * \endcode
+ *
+ * Executing \c clang_getUnqualifiedType() on a \c CXType that
+ * represents \c DifferenceType, will desugar to a type representing
+ * \c Integer, that has no qualifiers.
+ *
+ * And, executing \c clang_getUnqualifiedType() on the type of the
+ * first argument of the following function declaration:
+ *
+ * \code
+ * void foo(const int);
+ * \endcode
+ *
+ * Will return a type representing \c int, removing the \c const
+ * qualifier.
+ *
+ * Sugar over array types is not desugared.
+ *
+ * A type can be checked for qualifiers with \c
+ * clang_isConstQualifiedType(), \c clang_isVolatileQualifiedType()
+ * and \c clang_isRestrictQualifiedType().
+ *
+ * A type that resulted from a call to \c clang_getUnqualifiedType
+ * will return \c false for all of the above calls.
+ *)
+function clang_getUnqualifiedType(T: TCXType): TCXType; cdecl external LIBCLANG;
+
+(**
+ * For reference types (e.g., "const int&"), returns the type that the
+ * reference refers to (e.g "const int").
+ *
+ * Otherwise, returns the type itself.
+ *
+ * A type that has kind \c CXType_LValueReference or
+ * \c CXType_RValueReference is a reference type.
+ *)
+function clang_getNonReferenceType(T: TCXType): TCXType; cdecl external LIBCLANG;
 
 (**
  * Return the cursor for the declaration of the given type.
@@ -3233,16 +3479,19 @@ function clang_Type_getTemplateArgumentAsType(T: TCXType; i: Cardinal): TCXType;
 function clang_Type_getCXXRefQualifier(T: TCXType): TCXRefQualifierKind; cdecl external LIBCLANG;
 
 (**
- * Returns non-zero if the cursor specifies a Record member that is a
- *   bitfield.
- *)
-function clang_Cursor_isBitField(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
-
-(**
  * Returns 1 if the base class specified by the cursor with kind
  *   CX_CXXBaseSpecifier is virtual.
  *)
 function clang_isVirtualBase(p1: TCXCursor): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Returns the offset in bits of a CX_CXXBaseSpecifier relative to the parent
+ * class.
+ *
+ * Returns a small negative number if the offset cannot be computed. See
+ * CXTypeLayoutError for error codes.
+ *)
+function clang_getOffsetOfBase(Parent, Base: TCXCursor): Int64; cdecl external LIBCLANG;
 
 (**
  * Represents the C++ access control level to a base class for a
@@ -3559,6 +3808,25 @@ procedure clang_PrintingPolicy_dispose(Policy: TCXPrintingPolicy); cdecl externa
 function clang_getCursorPrettyPrinted(Cursor: TCXCursor; Policy: TCXPrintingPolicy): TCXString; cdecl external LIBCLANG;
 
 (**
+ * Pretty-print the underlying type using a custom printing policy.
+ *
+ * If the type is invalid, an empty string is returned.
+ *)
+function clang_getTypePrettyPrinted(T: TCXType; Policy: TCXPrintingPolicy): TCXString; cdecl external LIBCLANG;
+
+(**
+ * Get the fully qualified name for a type.
+ *
+ * This includes full qualification of all template parameters.
+ *
+ * Policy - Further refine the type formatting
+ * WithGlobalNsPrefix - If non-zero, function will prepend a '::' to qualified
+ * names
+ *)
+function clang_getFullyQualifiedName(T: TCXType; Policy: TCXPrintingPolicy;
+  WithGlobalNsPrefix: Cardinal): TCXString; cdecl external LIBCLANG;
+
+(**
  * Retrieve the display name for the entity referenced by this cursor.
  *
  * The display name contains extra information that helps identify the cursor,
@@ -3814,6 +4082,111 @@ function clang_Cursor_getCXXManglings(p1: TCXCursor): PCXStringSet; cdecl extern
 function clang_Cursor_getObjCManglings(p1: TCXCursor): PCXStringSet; cdecl external LIBCLANG;
 
 (**
+ * \defgroup CINDEX_MODULE Inline Assembly introspection
+ *
+ * The functions in this group provide access to information about GCC-style
+ * inline assembly statements.
+ *
+ * @{
+ *)
+
+(**
+ * Given a CXCursor_GCCAsmStmt cursor, return the assembly template string.
+ * As per LLVM IR Assembly Template language, template placeholders for
+ * inputs and outputs are either of the form $N where N is a decimal number
+ * as an index into the input-output specification,
+ * or ${N:M} where N is a decimal number also as an index into the
+ * input-output specification and M is the template argument modifier.
+ * The index N in both cases points into the the total inputs and outputs,
+ * or more specifically, into the list of outputs followed by the inputs,
+ * starting from index 0 as the first available template argument.
+ *
+ * This function also returns a valid empty string if the cursor does not point
+ * at a GCC inline assembly block.
+ *
+ * Users are responsible for releasing the allocation of returned string via
+ * \c clang_disposeString.
+ *)
+function clang_Cursor_getGCCAssemblyTemplate(C: TCXCursor): TCXString; cdecl external LIBCLANG;
+
+(**
+ * Given a CXCursor_GCCAsmStmt cursor, check if the assembly block has goto
+ * labels.
+ * This function also returns 0 if the cursor does not point at a GCC inline
+ * assembly block.
+ *)
+function clang_Cursor_isGCCAssemblyHasGoto(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Given a CXCursor_GCCAsmStmt cursor, count the number of outputs.
+ * This function also returns 0 if the cursor does not point at a GCC inline
+ * assembly block.
+ *)
+function clang_Cursor_getGCCAssemblyNumOutputs(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Given a CXCursor_GCCAsmStmt cursor, count the number of inputs.
+ * This function also returns 0 if the cursor does not point at a GCC inline
+ * assembly block.
+ *)
+function clang_Cursor_getGCCAssemblyNumInputs(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Given a CXCursor_GCCAsmStmt cursor, get the constraint and expression cursor
+ * to the Index-th input.
+ * This function returns 1 when the cursor points at a GCC inline assembly
+ * statement, `Index` is within bounds and both the `Constraint` and `Expr` are
+ * not NULL.
+ * Otherwise, this function returns 0 but leaves `Constraint` and `Expr`
+ * intact.
+ *
+ * Users are responsible for releasing the allocation of `Constraint` via
+ * \c clang_disposeString.
+ *)
+function clang_Cursor_getGCCAssemblyInput(C: TCXCursor; Index: Cardinal;
+  Constraint: PCXString; Expr: PCXCursor): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Given a CXCursor_GCCAsmStmt cursor, get the constraint and expression cursor
+ * to the Index-th output.
+ * This function returns 1 when the cursor points at a GCC inline assembly
+ * statement, `Index` is within bounds and both the `Constraint` and `Expr` are
+ * not NULL.
+ * Otherwise, this function returns 0 but leaves `Constraint` and `Expr`
+ * intact.
+ *
+ * Users are responsible for releasing the allocation of `Constraint` via
+ * \c clang_disposeString.
+ *)
+function clang_Cursor_getGCCAssemblyOutput(C: TCXCursor; Index: Cardinal;
+  Constraint: PCXString; Expr: PCXCursor): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Given a CXCursor_GCCAsmStmt cursor, count the clobbers in it.
+ * This function also returns 0 if the cursor does not point at a GCC inline
+ * assembly block.
+ *)
+function clang_Cursor_getGCCAssemblyNumClobbers(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Given a CXCursor_GCCAsmStmt cursor, get the Index-th clobber of it.
+ * This function returns a valid empty string if the cursor does not point
+ * at a GCC inline assembly block or `Index` is out of bounds.
+ *
+ * Users are responsible for releasing the allocation of returned string via
+ * \c clang_disposeString.
+ *)
+function clang_Cursor_getGCCAssemblyClobber(C: TCXCursor; Index: Cardinal): TCXString; cdecl external LIBCLANG;
+
+(**
+ * Given a CXCursor_GCCAsmStmt cursor, check if the inline assembly is
+ * `volatile`.
+ * This function returns 0 if the cursor does not point at a GCC inline
+ * assembly block.
+ *)
+function clang_Cursor_isGCCAssemblyVolatile(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
+
+(**
  * @}
  *)
 
@@ -3935,6 +4308,11 @@ function clang_CXXField_isMutable(C: TCXCursor): Cardinal; cdecl external LIBCLA
 function clang_CXXMethod_isDefaulted(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
 
 (**
+ * Determine if a C++ method is declared '= delete'.
+ *)
+function clang_CXXMethod_isDeleted(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
+
+(**
  * Determine if a C++ member function or member function template is
  * pure virtual.
  *)
@@ -3952,6 +4330,101 @@ function clang_CXXMethod_isStatic(C: TCXCursor): Cardinal; cdecl external LIBCLA
  * one of the base classes.
  *)
 function clang_CXXMethod_isVirtual(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Determine if a C++ member function is a copy-assignment operator,
+ * returning 1 if such is the case and 0 otherwise.
+ *
+ * > A copy-assignment operator `X::operator=` is a non-static,
+ * > non-template member function of _class_ `X` with exactly one
+ * > parameter of type `X`, `X&`, `const X&`, `volatile X&` or `const
+ * > volatile X&`.
+ *
+ * That is, for example, the `operator=` in:
+ *
+ *    class Foo {
+ *        bool operator=(const volatile Foo&);
+ *    };
+ *
+ * Is a copy-assignment operator, while the `operator=` in:
+ *
+ *    class Bar {
+ *        bool operator=(const int&);
+ *    };
+ *
+ * Is not.
+ *)
+function clang_CXXMethod_isCopyAssignmentOperator(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Determine if a C++ member function is a move-assignment operator,
+ * returning 1 if such is the case and 0 otherwise.
+ *
+ * > A move-assignment operator `X::operator=` is a non-static,
+ * > non-template member function of _class_ `X` with exactly one
+ * > parameter of type `X&&`, `const X&&`, `volatile X&&` or `const
+ * > volatile X&&`.
+ *
+ * That is, for example, the `operator=` in:
+ *
+ *    class Foo {
+ *        bool operator=(const volatile Foo&&);
+ *    };
+ *
+ * Is a move-assignment operator, while the `operator=` in:
+ *
+ *    class Bar {
+ *        bool operator=(const int&&);
+ *    };
+ *
+ * Is not.
+ *)
+function clang_CXXMethod_isMoveAssignmentOperator(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Determines if a C++ constructor or conversion function was declared
+ * explicit, returning 1 if such is the case and 0 otherwise.
+ *
+ * Constructors or conversion functions are declared explicit through
+ * the use of the explicit specifier.
+ *
+ * For example, the following constructor and conversion function are
+ * not explicit as they lack the explicit specifier:
+ *
+ *     class Foo {
+ *         Foo();
+ *         operator int();
+ *     };
+ *
+ * While the following constructor and conversion function are
+ * explicit as they are declared with the explicit specifier.
+ *
+ *     class Foo {
+ *         explicit Foo();
+ *         explicit operator int();
+ *     };
+ *
+ * This function will return 0 when given a cursor pointing to one of
+ * the former declarations and it will return 1 for a cursor pointing
+ * to the latter declarations.
+ *
+ * The explicit specifier allows the user to specify a
+ * conditional compile-time expression whose value decides
+ * whether the marked element is explicit or not.
+ *
+ * For example:
+ *
+ *     constexpr bool foo(int i) { return i % 2 == 0; }
+ *
+ *     class Foo {
+ *          explicit(foo(1)) Foo();
+ *          explicit(foo(2)) operator int();
+ *     }
+ *
+ * This function will return 0 for the constructor and 1 for
+ * the conversion function.
+ *)
+function clang_CXXMethod_isExplicit(C: TCXCursor): Cardinal; cdecl external LIBCLANG;
 
 (**
  * Determine if a C++ record is abstract, i.e. whether a class or struct
@@ -4806,58 +5279,6 @@ procedure clang_EvalResult_dispose(E: TCXEvalResult); cdecl external LIBCLANG;
  * @}
  *)
 
-(** \defgroup CINDEX_REMAPPING Remapping functions
- *
- * @{
- *)
-
-(**
- * A remapping of original source files and their translated files.
- *)
-type TCXRemapping = Pointer;
-
-(**
- * Retrieve a remapping.
- *
- * \param path the path that contains metadata about remappings.
- *
- * \returns the requested remapping. This remapping must be freed
- * via a call to \c clang_remap_dispose(). Can return NULL if an error occurred.
- *)
-function clang_getRemappings(const path: PAnsiChar): TCXRemapping; cdecl external LIBCLANG;
-
-(**
- * Retrieve a remapping.
- *
- * \param filePaths pointer to an array of file paths containing remapping info.
- *
- * \param numFiles number of file paths.
- *
- * \returns the requested remapping. This remapping must be freed
- * via a call to \c clang_remap_dispose(). Can return NULL if an error occurred.
- *)
-function clang_getRemappingsFromFileList(const filePaths: PPAnsiChar; numFiles: Cardinal): TCXRemapping; cdecl external LIBCLANG;
-
-(**
- * Determine the number of remappings.
- *)
-function clang_remap_getNumFiles(p1: TCXRemapping): Cardinal; cdecl external LIBCLANG;
-
-(**
- * Get the original and the associated filename from the remapping.
- *
- * \param original If non-NULL, will be set to the original filename.
- *
- * \param transformed If non-NULL, will be set to the filename that the original
- * is associated with.
- *)
-procedure clang_remap_getFilenames(p1: TCXRemapping; index: Cardinal; original: PCXString; transformed: PCXString); cdecl external LIBCLANG;
-
-(**
- * Dispose the remapping.
- *)
-procedure clang_remap_dispose(p1: TCXRemapping); cdecl external LIBCLANG;
-
 (**
  * @}
  *)
@@ -5009,6 +5430,7 @@ const
   CXIdxEntity_CXXConversionFunction = 24;
   CXIdxEntity_CXXTypeAlias = 25;
   CXIdxEntity_CXXInterface = 26;
+  CXIdxEntity_CXXConcept = 27;
 
 type
   TCXIdxEntityLanguage = Integer;
@@ -5416,6 +5838,140 @@ type TCXFieldVisitor = function(C: TCXCursor; client_data: TCXClientData): TCXVi
  * prematurely by the visitor returning \c CXFieldVisit_Break.
  *)
 function clang_Type_visitFields(T: TCXType; visitor: TCXFieldVisitor; client_data: TCXClientData): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Visit the base classes of a type.
+ *
+ * This function visits all the direct base classes of a the given cursor,
+ * invoking the given \p visitor function with the cursors of each
+ * visited base. The traversal may be ended prematurely, if
+ * the visitor returns \c CXFieldVisit_Break.
+ *
+ * \param T the record type whose field may be visited.
+ *
+ * \param visitor the visitor function that will be invoked for each
+ * field of \p T.
+ *
+ * \param client_data pointer data supplied by the client, which will
+ * be passed to the visitor each time it is invoked.
+ *
+ * \returns a non-zero value if the traversal was terminated
+ * prematurely by the visitor returning \c CXFieldVisit_Break.
+ *)
+function clang_visitCXXBaseClasses(T: TCXType; visitor: TCXFieldVisitor;
+  client_data: TCXClientData): Cardinal; cdecl external LIBCLANG;
+
+(**
+ * Visit the class methods of a type.
+ *
+ * This function visits all the methods of the given cursor,
+ * invoking the given \p visitor function with the cursors of each
+ * visited method. The traversal may be ended prematurely, if
+ * the visitor returns \c CXFieldVisit_Break.
+ *
+ * \param T The record type whose field may be visited.
+ *
+ * \param visitor The visitor function that will be invoked for each
+ * field of \p T.
+ *
+ * \param client_data Pointer data supplied by the client, which will
+ * be passed to the visitor each time it is invoked.
+ *
+ * \returns A non-zero value if the traversal was terminated
+ * prematurely by the visitor returning \c CXFieldVisit_Break.
+ *)
+function clang_visitCXXMethods(T: TCXType; visitor: TCXFieldVisitor;
+  client_data: TCXClientData): Cardinal; cdecl external LIBCLANG;
+
+type
+  (**
+   * Describes the kind of binary operators.
+   *)
+  TCXBinaryOperatorKind = Integer;
+
+const
+  CXBinaryOperator_Invalid = 0;
+  CXBinaryOperator_PtrMemD = 1;
+  CXBinaryOperator_PtrMemI = 2;
+  CXBinaryOperator_Mul = 3;
+  CXBinaryOperator_Div = 4;
+  CXBinaryOperator_Rem = 5;
+  CXBinaryOperator_Add = 6;
+  CXBinaryOperator_Sub = 7;
+  CXBinaryOperator_Shl = 8;
+  CXBinaryOperator_Shr = 9;
+  CXBinaryOperator_Cmp = 10;
+  CXBinaryOperator_LT = 11;
+  CXBinaryOperator_GT = 12;
+  CXBinaryOperator_LE = 13;
+  CXBinaryOperator_GE = 14;
+  CXBinaryOperator_EQ = 15;
+  CXBinaryOperator_NE = 16;
+  CXBinaryOperator_And = 17;
+  CXBinaryOperator_Xor = 18;
+  CXBinaryOperator_Or = 19;
+  CXBinaryOperator_LAnd = 20;
+  CXBinaryOperator_LOr = 21;
+  CXBinaryOperator_Assign = 22;
+  CXBinaryOperator_MulAssign = 23;
+  CXBinaryOperator_DivAssign = 24;
+  CXBinaryOperator_RemAssign = 25;
+  CXBinaryOperator_AddAssign = 26;
+  CXBinaryOperator_SubAssign = 27;
+  CXBinaryOperator_ShlAssign = 28;
+  CXBinaryOperator_ShrAssign = 29;
+  CXBinaryOperator_AndAssign = 30;
+  CXBinaryOperator_XorAssign = 31;
+  CXBinaryOperator_OrAssign = 32;
+  CXBinaryOperator_Comma = 33;
+  CXBinaryOperator_Last = CXBinaryOperator_Comma;
+
+(**
+ * Retrieve the spelling of a given CXBinaryOperatorKind.
+ *)
+function clang_getBinaryOperatorKindSpelling(Kind: TCXBinaryOperatorKind): TCXString; cdecl external LIBCLANG;
+
+(**
+ * Retrieve the binary operator kind of this cursor.
+ *
+ * If this cursor is not a binary operator then returns Invalid.
+ *)
+function clang_getCursorBinaryOperatorKind(Cursor: TCXCursor): TCXBinaryOperatorKind; cdecl external LIBCLANG;
+
+type
+  (**
+   * Describes the kind of unary operators.
+   *)
+  TCXUnaryOperatorKind = Integer;
+
+const
+  CXUnaryOperator_Invalid = 0;
+  CXUnaryOperator_PostInc = 1;
+  CXUnaryOperator_PostDec = 2;
+  CXUnaryOperator_PreInc = 3;
+  CXUnaryOperator_PreDec = 4;
+  CXUnaryOperator_AddrOf = 5;
+  CXUnaryOperator_Deref = 6;
+  CXUnaryOperator_Plus = 7;
+  CXUnaryOperator_Minus = 8;
+  CXUnaryOperator_Not = 9;
+  CXUnaryOperator_LNot = 10;
+  CXUnaryOperator_Real = 11;
+  CXUnaryOperator_Imag = 12;
+  CXUnaryOperator_Extension = 13;
+  CXUnaryOperator_Coawait = 14;
+
+(**
+ * Retrieve the spelling of a given CXUnaryOperatorKind.
+ *)
+function clang_getUnaryOperatorKindSpelling(Kind: TCXUnaryOperatorKind): TCXString; cdecl external LIBCLANG;
+
+(**
+ * Retrieve the unary operator kind of this cursor.
+ *
+ * If this cursor is not a unary operator then returns Invalid.
+ *)
+function clang_getCursorUnaryOperatorKind(Cursor: TCXCursor): TCXUnaryOperatorKind; cdecl external LIBCLANG;
 {$ENDREGION 'Index.h'}
 
 {$REGION 'Documentation.h'}
@@ -5822,6 +6378,68 @@ function clang_FullComment_getAsHTML(Comment: TCXComment): TCXString; cdecl exte
  * \returns string containing an XML document.
  *)
 function clang_FullComment_getAsXML(Comment: TCXComment): TCXString; cdecl external LIBCLANG;
+
+type
+  (**
+   * CXAPISet is an opaque type that represents a data structure containing all
+   * the API information for a given translation unit. This can be used for a
+   * single symbol symbol graph for a given symbol.
+   *)
+  TCXAPISet = Pointer;
+
+(**
+ * Traverses the translation unit to create a \c CXAPISet.
+ *
+ * \param tu is the \c CXTranslationUnit to build the \c CXAPISet for.
+ *
+ * \param out_api is a pointer to the output of this function. It is needs to be
+ * disposed of by calling clang_disposeAPISet.
+ *
+ * \returns Error code indicating success or failure of the APISet creation.
+ *)
+function clang_createAPISet(TU: TCXTranslationUnit; out OutApi: TCXAPISet): TCXErrorCode; cdecl external LIBCLANG;
+
+(**
+ * Dispose of an APISet.
+ *
+ * The provided \c CXAPISet can not be used after this function is called.
+ *)
+procedure clang_disposeAPISet(Api: TCXAPISet); cdecl external LIBCLANG;
+
+(**
+ * Generate a single symbol symbol graph for the given USR. Returns a null
+ * string if the associated symbol can not be found in the provided \c CXAPISet.
+ *
+ * The output contains the symbol graph as well as some additional information
+ * about related symbols.
+ *
+ * \param usr is a string containing the USR of the symbol to generate the
+ * symbol graph for.
+ *
+ * \param api the \c CXAPISet to look for the symbol in.
+ *
+ * \returns a string containing the serialized symbol graph representation for
+ * the symbol being queried or a null string if it can not be found in the
+ * APISet.
+ *)
+function clang_getSymbolGraphForUSR(const Usr: PAnsiChar; Api: TCXAPISet): TCXString; cdecl external LIBCLANG;
+
+(**
+ * Generate a single symbol symbol graph for the declaration at the given
+ * cursor. Returns a null string if the AST node for the cursor isn't a
+ * declaration.
+ *
+ * The output contains the symbol graph as well as some additional information
+ * about related symbols.
+ *
+ * \param cursor the declaration for which to generate the single symbol symbol
+ * graph.
+ *
+ * \returns a string containing the serialized symbol graph representation for
+ * the symbol being queried or a null string if it can not be found in the
+ * APISet.
+ *)
+function clang_getSymbolGraphForCursor(Cursor: TCXCursor): TCXString; cdecl external LIBCLANG;
 {$ENDREGION 'Documentation.h'}
 
 {$REGION 'FatalErrorHandler.h'}
